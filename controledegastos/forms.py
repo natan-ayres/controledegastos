@@ -134,7 +134,7 @@ class PrevistasForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None)
+        user = kwargs.pop('usuario', None)
         super().__init__(*args, **kwargs)
         self.fields['lugar'].queryset = Lugares.objects.filter(usuario=user)
         self.fields['categoria'].queryset = Categorias.objects.filter(usuario=user)
