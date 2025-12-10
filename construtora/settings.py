@@ -33,13 +33,13 @@ ALLOWED_HOSTS = HOSTS
 # Application definition
 
 INSTALLED_APPS = [
+    'controledegastos',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'controledegastos',
 ]
 
 MIDDLEWARE = [
@@ -88,7 +88,7 @@ DATABASES = {
 
 import dj_database_url
 
-DATABASES["default"] = dj_database_url.parse(DATABASE_URL)
+DATABASES['default'] = dj_database_url.parse(DATABASE_URL)
 
 
 # Password validation

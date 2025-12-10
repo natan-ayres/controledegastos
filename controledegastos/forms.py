@@ -5,47 +5,25 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 
 class EditarUsuarioForm(forms.ModelForm):
-    password = forms.CharField(
-        label="Senha",
-        widget=forms.PasswordInput(attrs={"class": "input"}),
-        required=False
-    )
-
     class Meta:
         model = User
-        fields = ["username", "email", "password"]
+        fields = ["username", "email"]
         widgets = {
             "username": forms.TextInput(attrs={"class": "input"}),
             "email": forms.EmailInput(attrs={"class": "input"}),
         }
 
-    def clean_password(self):
-        password = self.cleaned_data.get("password")
-
-        if not password:
-            return password
-
-        errors = []
-
-        if len(password) < 6:
-            errors.append("A senha deve ter pelo menos 6 caracteres.")
-
-        if errors:
-            raise ValidationError(errors)
-
-        return password
-
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        password = self.cleaned_data.get("password")
-
-        if password:
-            user.set_password(password)
-
-        if commit:
-            user.save()
-
-        return user
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if User.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
+            raise ValidationError("Este e-mail já está em uso por outro usuário.")
+        return email
+    
+    def clean_username(self):
+        username = self.cleaned_data.get("username")
+        if User.objects.filter(username=username).exclude(pk=self.instance.pk).exists():
+            raise ValidationError("Este nome de usuário já está em uso por outro usuário.")
+        return username
 
 class OrcamentosForm(forms.ModelForm):
     class Meta:

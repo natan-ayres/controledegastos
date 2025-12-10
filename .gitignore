@@ -18,7 +18,8 @@ db.sqlite3-journal
 
 # === Configurações locais ===
 
-script.py
+scriptantigo.py
+scriptnovo.py
 .env
 .env.local
 .env.development
