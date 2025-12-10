@@ -1,0 +1,311 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="bg-gray-100 min-h-screen py-10 px-4">
+    <div class="max-w-6xl mx-auto">
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-red-700 mb-4 sm:mb-0">
+                {% if tipo_saldo == 'Final' %}
+                    Dashboard de {{ mes }}({{ ano }})
+                {% else %}
+                    Dashboard
+                {% endif %}
+            </h1>
+            <a href="{% url 'controledegastos:criardespesa' %}"
+                class="bg-red-700 text-white px-5 py-2 rounded-md font-semibold hover:bg-red-800 transition-colors">
+                + Nova Despesa
+            </a>
+        </div>
+
+        <!-- Toggle Meses (mobile) -->
+        <div class="sm:hidden mb-4 mt-4">
+            <button id="toggle-meses"
+                    aria-expanded="false"
+                    class="w-full flex items-center justify-between bg-red-700 text-white px-4 py-2 rounded-md font-semibold hover:bg-red-800 transition-colors">
+                {% if tipo_saldo == 'Final' %}
+                <span id="toggle-meses-label">Mostrar outros meses</span>
+                {% else %}
+                <span id="toggle-meses-label">Mostrar meses anteriores</span>
+                {% endif %}
+                <span id="toggle-meses-icon" class="ml-2 text-xl">+</span>
+            </button>
+
+            <!-- Container meses -->
+            <div id="meses-container" class="bg-white rounded-lg shadow p-5 mb-6 hidden">
+                <div class="space-y-3">
+                    {% for ano_dict in anos_validos %}
+                        {% for ano, meses in ano_dict.items %}
+                            <div>
+                                <h3 class="font-semibold text-red-700 text-sm mt-1 mb-1">{{ ano }}</h3>
+                                <div class="flex flex-wrap gap-2">
+                                    {% for m in meses %}
+                                        {% if m == numero_mes and ano == ano %}
+                                            <span class="px-3 py-1 text-sm rounded-full bg-red-700 text-white border border-white">
+                                                {{ m }}
+                                            </span>
+                                        {% else %}
+                                            {% if m == mes_atual and ano == ano %}
+                                                <a href="{% url 'controledegastos:index' %}"
+                                                    class="px-3 py-1 text-sm rounded-full border border-red-300 text-red-700 hover:bg-red-700 hover:text-white">
+                                                    {{ m }}
+                                                </a>
+                                            {% else %}
+                                                <a href="{% url 'controledegastos:indexmeses' m ano %}"
+                                                    class="px-3 py-1 text-sm rounded-full border border-red-300 text-red-700 hover:bg-red-700 hover:text-white">
+                                                    {{ m }}
+                                                </a>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Toggle Saldos (mobile) -->
+        <div class="sm:hidden mb-4">
+            <button id="toggle-saldos"
+                    aria-expanded="false"
+                    class="w-full flex items-center justify-between bg-red-700 text-white px-4 py-2 rounded-md font-semibold hover:bg-red-800 transition-colors">
+                <span id="toggle-saldos-label">Mostrar saldos</span>
+                <span id="toggle-saldos-icon" class="ml-2 text-xl">+</span>
+            </button>
+        </div>
+
+        <!-- Saldos -->
+        <div id="saldos-container" class="rounded-lg p-6 mb-8 hidden sm:block">
+
+    {% if fatura_nao_paga %}
+    <!-- COM FATURA - 4 CARDS -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+        <!-- Gasto -->
+        <div class="bg-white shadow-md rounded-lg p-6 border-t-4 border-red-700">
+            <h2 class="text-lg font-semibold text-gray-700">Gasto</h2>
+            <p class="text-3xl font-bold text-red-700 mt-2">
+                R$ {{ total_gasto|default_if_none:"0"|floatformat:2 }}
+            </p>
+        </div>
+
+        <!-- Recebido -->
+        <div class="bg-white shadow-md rounded-lg p-6 border-t-4 border-red-700">
+            <h2 class="text-lg font-semibold text-gray-700">Recebido</h2>
+            <p class="text-3xl font-bold text-red-700 mt-2">
+                R$ {{ total_recebido|default_if_none:"0"|floatformat:2 }}
+            </p>
+        </div>
+
+        <!-- Saldo -->
+        <div class="bg-white shadow-md rounded-lg p-6 border-t-4 border-red-700">
+            <h2 class="text-lg font-semibold text-gray-700">Saldo {{ tipo_saldo }}</h2>
+            <p class="text-3xl font-bold text-red-700 mt-2">
+                R$ {{ saldo_atual|default_if_none:"0"|floatformat:2 }}
+            </p>
+        </div>
+
+        <!-- Fatura -->
+        <div class="bg-white shadow-md rounded-lg p-6 border-t-4 border-red-700">
+            <h2 class="text-lg font-semibold text-gray-700">Fatura Atual</h2>
+            <p class="text-3xl font-bold text-red-700 mt-2">
+                R$ {{ fatura_nao_paga|floatformat:2 }}
+            </p>
+        </div>
+
+    </div>
+
+    {% else %}
+    <!-- SEM FATURA - 3 CARDS -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <!-- Gasto -->
+        <div class="bg-white shadow-md rounded-lg p-6 border-t-4 border-red-700">
+            <h2 class="text-lg font-semibold text-gray-700">Gasto</h2>
+            <p class="text-3xl font-bold text-red-700 mt-2">
+                R$ {{ total_gasto|default_if_none:"0"|floatformat:2 }}
+            </p>
+        </div>
+
+        <!-- Recebido -->
+        <div class="bg-white shadow-md rounded-lg p-6 border-t-4 border-red-700">
+            <h2 class="text-lg font-semibold text-gray-700">Recebido</h2>
+            <p class="text-3xl font-bold text-red-700 mt-2">
+                R$ {{ total_recebido|default_if_none:"0"|floatformat:2 }}
+            </p>
+        </div>
+
+        <!-- Saldo -->
+        <div class="bg-white shadow-md rounded-lg p-6 border-t-4 border-red-700">
+            <h2 class="text-lg font-semibold text-gray-700">Saldo {{ tipo_saldo }}</h2>
+            <p class="text-3xl font-bold text-red-700 mt-2">
+                R$ {{ saldo_atual|default_if_none:"0"|floatformat:2 }}
+            </p>
+        </div>
+
+    </div>
+
+    {% endif %}
+
+</div>
+
+
+        <!-- Toggle Filtros (mobile) -->
+        <div class="sm:hidden mb-4">
+            <button id="toggle-filtro"
+                    aria-expanded="false"
+                    class="w-full flex items-center justify-between bg-red-700 text-white px-4 py-2 rounded-md font-semibold hover:bg-red-800 transition-colors">
+                <span id="toggle-label">Mostrar filtros</span>
+                <span id="toggle-icon" class="ml-2 text-xl">+</span>
+            </button>
+        </div>
+
+        <!-- FILTROS VIA GET -->
+        <div id="filtro-container" class="bg-white rounded-lg shadow-md p-6 mb-8 hidden sm:block">
+            <h2 class="text-lg font-semibold text-red-700 mb-4">Filtrar despesas</h2>
+
+            <form method="GET">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Nome</label>
+                        <input name="nome" type="text" value="{{ request.GET.nome }}"
+                               class="w-full mt-1 px-3 py-2 border rounded-md" placeholder="Buscar por nome...">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Categoria</label>
+                        <select name="categoria" class="w-full mt-1 px-3 py-2 border rounded-md">
+                            <option value="">Todas</option>
+                            {% for c in categorias %}
+                                <option value="{{ c.id }}" {% if request.GET.categoria == c.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ c.nome }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Lugar</label>
+                        <select name="lugar" class="w-full mt-1 px-3 py-2 border rounded-md">
+                            <option value="">Todos</option>
+                            {% for l in lugares %}
+                                <option value="{{ l.id }}" {% if request.GET.lugar == l.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ l.nome }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Dia</label>
+                        <input name="dia" type="number" value="{{ request.GET.dia }}"
+                               class="w-full mt-1 px-3 py-2 border rounded-md" placeholder="Dia (1-31)">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Valor mínimo</label>
+                        <input name="valor_min" type="number" step="0.01" value="{{ request.GET.valor_min }}"
+                               class="w-full mt-1 px-3 py-2 border rounded-md" placeholder="R$">
+                    </div>
+                </div>
+                <button class="mt-4 px-6 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800">
+                    Aplicar filtro
+                </button>
+            </form>
+        </div>
+
+        <!-- TABELA -->
+        <div class="overflow-x-auto bg-white shadow-md rounded-lg">
+            <table class="min-w-full table-auto text-left text-gray-700">
+                <thead class="bg-red-700 text-white text-sm uppercase">
+                    <tr>
+                        <th class="px-6 py-3">Nome</th>
+                        <th class="px-6 py-3">Valor</th>
+                        <th class="px-6 py-3">Data</th>
+                        <th class="px-6 py-3">Categoria</th>
+                        <th class="px-6 py-3">Lugar</th>
+                    </tr>
+                </thead>
+
+                <tbody class="divide-y divide-gray-200">
+                {% for despesa in page_obj %}
+                    <tr onclick="window.location.href='{% url 'controledegastos:despesa' despesa.id %}'"
+                        class="hover:bg-gray-50 cursor-pointer">
+                        <td class="px-6 py-3">{{ despesa.nome }}</td>
+                        <td class="px-6 py-3">R$ {{ despesa.valor }}</td>
+                        <td class="px-6 py-3">{{ despesa.data|date:"d/m" }}</td>
+                        <td class="px-6 py-3">{{ despesa.categoria|default:"—" }}</td>
+                        <td class="px-6 py-3">{{ despesa.lugar|default:"—" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-6 text-gray-500">
+                            Nenhuma despesa encontrada.
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGINAÇÃO -->
+        <div class="flex justify-center mt-8 space-x-2">
+            {% with filtros=request.GET.urlencode|cut:"page=" %}
+                {% with filtros=filtros|cut:"&&" %}
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}{% if filtros %}&{{ filtros }}{% endif %}"
+                        class="px-4 py-2 bg-white border rounded-md text-red-700 hover:bg-red-100">
+                            Anterior
+                        </a>
+                    {% endif %}
+
+                    <span class="px-4 py-2 bg-red-700 text-white rounded-md">
+                        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                    </span>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if filtros %}&{{ filtros }}{% endif %}"
+                        class="px-4 py-2 bg-white border rounded-md text-red-700 hover:bg-red-100">
+                            Próxima
+                        </a>
+                    {% endif %}
+                {% endwith %}
+            {% endwith %}
+
+        </div>
+
+    </div>
+</div>
+
+<!-- Scripts de toggle -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    function setupToggle(btnId, containerId, labelId, iconId, openMsg, closeMsg) {
+        const btn = document.getElementById(btnId);
+        const container = document.getElementById(containerId);
+        const label = document.getElementById(labelId);
+        const icon = document.getElementById(iconId);
+
+        if (!btn || !container) return;
+
+        btn.addEventListener('click', () => {
+            const open = container.classList.toggle('hidden');
+            btn.setAttribute('aria-expanded', String(!open));
+            label.textContent = open ? openMsg : closeMsg;
+            icon.textContent = open ? '+' : '–';
+        });
+    }
+
+    setupToggle("toggle-filtro", "filtro-container", "toggle-label", "toggle-icon",
+        "Mostrar filtros", "Ocultar filtros");
+
+    setupToggle("toggle-saldos", "saldos-container", "toggle-saldos-label", "toggle-saldos-icon",
+        "Mostrar saldos", "Ocultar saldos");
+
+    setupToggle("toggle-meses", "meses-container", "toggle-meses-label", "toggle-meses-icon",
+        "Mostrar meses anteriores", "Ocultar meses anteriores");
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+  <!-- Título + botões -->
+  <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+    <h1 class="text-2xl font-bold text-red-600 text-center sm:text-left">
+      Detalhes da Despesa Prevista
+    </h1>
+
+    <div class="flex flex-wrap justify-center sm:justify-end gap-3 w-full sm:w-auto">
+      <a href="{% url 'controledegastos:editarprevista' prevista.id %}"
+         class="bg-white text-red-600 border border-red-600 px-5 py-2 rounded-lg hover:bg-red-50 transition text-center">
+        Editar
+      </a>
+
+      <form action="{% url 'controledegastos:deletarprevista' prevista.id %}" method="POST">
+        {% csrf_token %}
+        <button type="submit"
+                class="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition">
+          Deletar
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Card da prevista -->
+  <div class="bg-white shadow-md rounded-xl border border-gray-100 p-6">
+    <h2 class="text-xl font-semibold text-gray-800 mb-2">{{ prevista.nome }}</h2>
+
+    {% if prevista.descricao %}
+    <div class="mt-4">
+      <p class="text-gray-500 text-sm uppercase mb-1">Descrição</p>
+      <p class="text-gray-700 leading-relaxed">{{ prevista.descricao }}</p>
+    </div>
+    {% else %}
+    <div class="mt-4">
+      <p class="text-gray-400 italic">Sem descrição</p>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+      <div>
+        <p class="text-gray-500 text-sm uppercase mb-1">Valor</p>
+        <p class="font-semibold text-green-600">
+          R$ {{ prevista.valor }}
+        </p>
+      </div>
+
+      <div>
+        <p class="text-gray-500 text-sm uppercase mb-1">Data prevista</p>
+        <p class="text-gray-800">{{ prevista.data_prevista }}</p>
+      </div>
+
+      <div>
+        <p class="text-gray-500 text-sm uppercase mb-1">Categoria</p>
+        {% if prevista.categoria %}
+        <p class="text-gray-800">{{ prevista.categoria }}</p>
+        {% else %}
+        <p class="text-gray-400 italic">Sem categoria</p>
+        {% endif %}
+      </div>
+
+      <div>
+        <p class="text-gray-500 text-sm uppercase mb-1">Lugar</p>
+        {% if prevista.lugar %}
+        <p class="text-gray-800">{{ prevista.lugar }}</p>
+        {% else %}
+        <p class="text-gray-400 italic">Sem lugar associado</p>
+        {% endif %}
+      </div>
+
+      <div>
+        <p class="text-gray-500 text-sm uppercase mb-1">Adicionar ao dashboard após data de pagamento?</p>
+        {% if prevista.pagamento_automatico %}
+        <p class="text-green-600 font-semibold">Sim</p>
+        {% else %}
+        <p class="text-gray-600">Não</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <!-- Voltar -->
+  <div class="mt-8 text-center">
+    <a href="{% url 'controledegastos:previstas' %}"
+       class="inline-block bg-gray-100 text-gray-700 px-5 py-2 rounded-lg hover:bg-gray-200 transition">
+      ← Voltar à lista de Previstas
+    </a>
+  </div>
+</div>
+
+{% endblock %}

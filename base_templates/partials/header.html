@@ -1,0 +1,64 @@
+<!-- templates/partials/header.html -->
+<header class="bg-red-700 text-white shadow-md">
+  <div class="max-w-7xl mx-auto flex justify-between items-center px-4 py-3">
+    <a href="{% url 'controledegastos:index' %}" class="flex items-center gap-2 font-bold text-xl">
+      <span class="text-white">Controle de Gastos</span>
+    </a>
+
+    <!-- Navegação desktop -->
+    <nav class="hidden md:flex gap-6">
+      <a href="{% url 'controledegastos:index' %}" class="hover:text-red-200 transition">Dashboard</a>
+      <a href="{% url 'controledegastos:categorias' %}" class="hover:text-red-200 transition">Categorias</a>
+      <a href="{% url 'controledegastos:lugares' %}" class="hover:text-red-200 transition">Lugares</a>
+      <a href="{% url 'controledegastos:orcamentos' %}" class="hover:text-red-200 transition">Entradas</a>
+      <a href="{% url 'controledegastos:previstas' %}" class="hover:text-red-200 transition">Previstas</a>
+      <a href="{% url 'controledegastos:creditos' %}" class="hover:text-red-200 transition">Crédito</a>
+    </nav>
+        <div class="hidden md:flex items-center gap-4">
+          <span class="text-sm text-red-100 hover:text-white hover:bg-red-600/20 px-2 py-1 rounded transition flex items-center gap-2 border border-transparent hover:border-red-300"><a href="{% url 'controledegastos:perfil' %}">Olá, <strong>{{ username }}</strong></a></span>
+          <form method="post" action="{% url 'controledegastos:logout' %}">
+            {% csrf_token %}
+            <button type="submit" aria-label="Sair" class="ml-2 text-sm text-red-100 hover:text-white hover:bg-red-600/20 px-2 py-1 rounded transition flex items-center gap-2 border border-transparent hover:border-red-300">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1" />
+              </svg>
+              <span>Sair</span>
+            </button>
+          </form>
+        </div>
+    
+
+    <!-- Botão menu mobile -->
+    <button id="mobile-menu-btn" class="md:hidden text-white focus:outline-none">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+    </button>
+  </div>
+
+  <!-- Menu mobile -->
+  <div id="mobile-menu" class="hidden md:hidden bg-red-600 border-t border-red-500">
+    <nav class="flex flex-col px-4 py-3 space-y-2">
+      <a href="{% url 'controledegastos:index' %}" class="hover:text-red-200 transition">Dashboard</a>
+      <a href="{% url 'controledegastos:categorias' %}" class="hover:text-red-200 transition">Categorias</a>
+      <a href="{% url 'controledegastos:lugares' %}" class="hover:text-red-200 transition">Lugares</a>
+      <a href="{% url 'controledegastos:orcamentos' %}" class="hover:text-red-200 transition">Entradas</a>
+      <a href="{% url 'controledegastos:previstas' %}" class="hover:text-red-200 transition">Previstas</a>
+      <a href="{% url 'controledegastos:creditos' %}" class="hover:text-red-200 transition">Crédito</a>
+      <a href="{% url 'controledegastos:perfil' %}" class="hover:text-red-200 transition">Perfil</a>
+      <a href="{% url 'controledegastos:logout' %}" class="hover:text-red-200 transition">
+        Sair
+      </a>
+    </nav>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('mobile-menu-btn');
+      const menu = document.getElementById('mobile-menu');
+      btn.addEventListener('click', () => menu.classList.toggle('hidden'));
+    });
+  </script>
+</header>

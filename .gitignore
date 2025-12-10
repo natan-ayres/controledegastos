@@ -1,0 +1,95 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+
+# === Django ===
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+db.sqlite3
+db.sqlite3-journal
+
+# Arquivos de migração (opcional, remova se quiser versionar)
+*/migrations/__pycache__/
+*/migrations/*.py
+
+# === Configurações locais ===
+.env
+.env.local
+.env.development
+.env.production
+*.env
+*.secret
+
+# === IDEs / Editores ===
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# === Sistema Operacional ===
+.DS_Store
+Thumbs.db
+
+# === Logs e cache ===
+*.log
+*.out
+*.pid
+*.seed
+*.bak
+*.swp
+*.tmp
+*.temp
+*.old
+*.orig
+
+# === Arquivos de build ===
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+.installed.cfg
+
+# === Virtualenv ===
+venv/
+env/
+ENV/
+.venv/
+.virtualenv/
+
+# === Node / Frontend ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+local_settings.py
+
+# === Arquivos estáticos e mídia ===
+media/
+tmp/
+
+# === Coverage / Testes ===
+.coverage
+.tox/
+.nox/
+.coverage.*
+.cache
+pytest_cache/
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# === Outros ===
+*.bak
+*.swp
+*.tmp
+*.orig

@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+    <h1 class="text-2xl font-bold text-red-600 text-center sm:text-left">
+      Cartões de Crédito
+    </h1>
+
+    <a href="{% url 'controledegastos:criarcartao' %}"
+       class="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition text-center">
+      + Novo Cartão
+    </a>
+  </div>
+
+  <!-- Lista de cartões -->
+  {% if page_obj %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        {% for cartao in page_obj %}
+
+        <div class="shadow-lg rounded-xl p-5 hover:shadow-xl transition text-white"
+    style="background-color: {{ cartao.cor }};">
+
+    <a href="{% url 'controledegastos:despesascredito' cartao.id %}"
+        class="block no-underline text-white">
+
+        <div class="flex justify-between items-center">
+            <h2 class="text-lg font-semibold">{{ cartao.nome }}</h2>
+            <p class="text-sm opacity-75">**** {{ cartao.ultimos_4_digitos }}</p>
+        </div>
+
+        <div class="space-y-1 text-sm">
+            <p>Limite utilizado:
+                <span class="font-semibold">R$ {{cartao.utilizado}}/{{ cartao.limite_credito }}</span>
+            </p>
+
+            <div class="mt-5 text-sm opacity-90 flex justify-between">
+                <p>Fechamento: <span class="font-semibold">{{ cartao.data_fechamento }}</span></p>
+                <p>Vencimento: <span class="font-semibold">{{ cartao.data_vencimento }}</span></p>
+            </div>
+
+            {% if cartao.fatura %}
+                <p class="font-bold text-yellow-300">
+                    Fatura Atual: R${{ cartao.fatura|floatformat:2 }}
+                </p>
+            {% else %}
+                <p class="font-bold text-yellow-300">
+                    Sem Fatura Atual
+                </p>
+            {% endif %}
+        </div>
+
+        <div class="flex justify-between mt-6 gap-2">
+
+            <a href="{% url 'controledegastos:editarcartao' cartao.id %}"
+                class="flex-1 font-semibold px-3 py-1.5 rounded-lg text-center transition
+                    border border-white text-white bg-white/20 hover:bg-white/30">
+                Editar
+            </a>
+
+            <form action="{% url 'controledegastos:deletarcartao' cartao.id %}" method="POST" class="flex-1">
+                {% csrf_token %}
+                <button type="submit"
+                    class="w-full px-3 py-1.5 rounded-lg transition
+                        border border-white text-white bg-white/20 hover:bg-white/30 cursor-pointer">
+                    Deletar
+                </button>
+            </form>
+
+        </div>
+
+    </a>
+</div>
+
+        {% endfor %}
+    </div>
+
+
+  <!-- Paginação -->
+  <div class="flex justify-center mt-8">
+    <div class="inline-flex space-x-2">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}"
+           class="cursor-pointer px-4 py-2 bg-white border rounded-md text-gray-700 hover:bg-gray-200">
+          Anterior
+        </a>
+      {% endif %}
+
+      <span class="px-4 py-2 bg-red-800 text-white rounded-md">
+        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+      </span>
+
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}"
+           class="cursor-pointer px-4 py-2 bg-white border rounded-md text-gray-700 hover:bg-gray-200">
+          Próxima
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% else %}
+  <p class="text-gray-500 text-center mt-10 text-lg">
+    Nenhum cartão adicionado ainda.
+  </p>
+  {% endif %}
+</div>
+{% endblock %}

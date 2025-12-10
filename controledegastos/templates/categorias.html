@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+    <h1 class="text-2xl font-bold text-red-600 text-center sm:text-left">
+      Categorias
+    </h1>
+
+    <a href="{% url 'controledegastos:criarcategoria' %}" 
+       class="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition text-center">
+      + Nova Categoria
+    </a>
+  </div>
+
+  <!-- Lista de categorias -->
+  {% if page_obj %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% for categoria in page_obj %}
+        <div class="bg-white shadow-md rounded-lg p-5 border border-gray-100 hover:shadow-lg transition">
+            <a
+              href="{% url 'controledegastos:categoria' categoria.id %}"
+              class="block text-inherit no-underline"
+              aria-label="Ver detalhes de {{ categoria.nome }}"
+            >
+              <h2 class="text-lg font-semibold text-gray-800">{{ categoria.nome }}</h2>
+              {% if categoria.descricao %}
+                <p class="text-gray-600 text-sm mt-1">{{ categoria.descricao }}</p>
+              {% else %}
+                <p class="text-gray-400 text-sm mt-1 italic">Sem descrição</p>
+              {% endif %}
+              <p class="text-green-600 font-semibold mt-3">
+                Gasto no mês: R${{ categoria.valor_por_mes|floatformat:2 }}
+              </p>
+              <div class="flex justify-between items-center mt-4 gap-2">
+                <a href="{% url 'controledegastos:editarcategoria' categoria.id %}"
+                  class="flex-1 bg-white text-red-600 border border-red-600 px-3 py-1.5 rounded-lg text-center hover:bg-red-50 transition">
+                  Editar
+                </a>
+                <form action="{% url 'controledegastos:deletarcategoria' categoria.id %}" method="POST" class="flex-1">
+                  {% csrf_token %}
+                  <button type="submit"
+                          class="w-full bg-red-600 text-white px-3 py-1.5 rounded-lg hover:bg-red-700 transition">
+                    Deletar
+                  </button>
+                </form>
+              </div>
+            </a>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Paginação -->
+    <div class="flex justify-center mt-8">
+      <div class="inline-flex space-x-2">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}"
+             class="cursor-pointer px-4 py-2 bg-white border rounded-md text-red-700 hover:bg-red-100">
+            Anterior
+          </a>
+              {% endif %}
+
+              <span class="px-4 py-2 bg-red-700 text-white rounded-md">
+          Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+              </span>
+
+              {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}"
+             class="cursor-pointer px-4 py-2 bg-white border rounded-md text-red-700 hover:bg-red-100">
+            Próxima
+          </a>
+              {% endif %}
+      </div>
+    </div>
+  {% else %}
+    <p class="text-gray-500 text-center mt-10 text-lg">
+      Nenhuma categoria encontrada.
+    </p>
+  {% endif %}
+</div>
+{% endblock %}

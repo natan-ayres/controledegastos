@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+    <h1 class="text-2xl font-bold text-red-600 text-center sm:text-left">
+      Detalhes da Despesa
+    </h1>
+
+    <div class="flex flex-wrap justify-center sm:justify-end gap-3 w-full sm:w-auto">
+      <a href="{% url 'controledegastos:editardespesa' despesa.id %}"
+         class="bg-white text-red-600 border border-red-600 px-5 py-2 rounded-lg hover:bg-red-50 transition text-center">
+        Editar
+      </a>
+      <form action="{% url 'controledegastos:deletardespesa' despesa.id %}" method="POST">
+        {% csrf_token %}
+        <button type="submit"
+                class="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition">
+          Deletar
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Card de despesa -->
+  <div class="bg-white shadow-md rounded-xl border border-gray-100 p-6">
+    <h2 class="text-xl font-semibold text-gray-800 mb-2">{{ despesa.nome }}</h2>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+      <div>
+        <p class="text-gray-500 text-sm uppercase">Valor</p>
+        <p class="text-lg font-medium text-gray-800">R$ {{ despesa.valor }}</p>
+      </div>
+
+      <div>
+        <p class="text-gray-500 text-sm uppercase">Data</p>
+        <p class="text-lg font-medium text-gray-800">
+          {{ despesa.data|date:"d/m/Y" }}
+        </p>
+      </div>
+
+      <div>
+        <p class="text-gray-500 text-sm uppercase">Categoria</p>
+        <p class="text-lg font-medium text-gray-800">
+          {{ despesa.categoria.nome|default:"Sem categoria" }}
+        </p>
+      </div>
+
+      <div>
+        <p class="text-gray-500 text-sm uppercase">Lugar</p>
+        <p class="text-lg font-medium text-gray-800">
+          {{ despesa.lugar.nome|default:"Sem lugar" }}
+        </p>
+      </div>
+    </div>
+
+    {% if despesa.descricao %}
+      <div class="mt-6">
+        <p class="text-gray-500 text-sm uppercase mb-1">Descrição</p>
+        <p class="text-gray-700 leading-relaxed">
+          {{ despesa.descricao }}
+        </p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Voltar -->
+  <div class="mt-8 text-center">
+    <a href="{% url 'controledegastos:index' %}"
+       class="inline-block bg-gray-100 text-gray-700 px-5 py-2 rounded-lg hover:bg-gray-200 transition">
+      ← Voltar ao Dashboard
+    </a>
+  </div>
+</div>
+{% endblock %}

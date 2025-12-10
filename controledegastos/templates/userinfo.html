@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+  <!-- Cabeçalho -->
+  <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+    <h1 class="text-2xl font-bold text-red-600 text-center sm:text-left">
+      Meu Perfil
+    </h1>
+
+    <div class="flex flex-wrap justify-center sm:justify-end gap-3 w-full sm:w-auto">
+      <a href="{% url 'controledegastos:editperfil' %}"
+         class="bg-white text-red-600 border border-red-600 px-5 py-2 rounded-lg hover:bg-red-50 transition text-center">
+        Editar Perfil
+      </a>
+    </div>
+  </div>
+
+  <!-- Card do usuário -->
+  <div class="bg-white shadow-md rounded-xl border border-gray-100 p-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+        <p class="text-gray-500 text-sm uppercase">Username</p>
+        <p class="text-lg font-medium text-gray-800">
+          {{ user.username }}
+        </p>
+      </div>
+      <div>
+        <p class="text-gray-500 text-sm uppercase">Email</p>
+        <p class="text-lg font-medium text-gray-800">
+          {{ user.email|default:"—" }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Voltar -->
+  <div class="mt-8 text-center">
+    <a href="{% url 'controledegastos:index' %}"
+       class="inline-block bg-gray-100 text-gray-700 px-5 py-2 rounded-lg hover:bg-gray-200 transition">
+      ← Voltar ao Dashboard
+    </a>
+  </div>
+</div>
+{% endblock %}
