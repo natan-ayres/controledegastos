@@ -72,12 +72,28 @@ class LoginForm(AuthenticationForm):
         })
     )
 
-    def confirm_login_allowed(self, user):
-        if not user.is_active:
-            raise ValidationError(
-                "Sua conta ainda não foi verificada. Verifique seu e-mail.",
-                code="inactive",
-            )
+    def clean(self):
+        # pega username enviado no form
+        username = self.cleaned_data.get("username")
+
+        # tenta buscar o usuário antes de autenticar
+        if username:
+            try:
+                user = User.objects.get(username=username)
+
+                # se usuário existe mas está inativo → AVISO
+                if not user.is_active:
+                    raise ValidationError(
+                        "Sua conta ainda não foi verificada. Verifique seu e-mail.",
+                        code="inactive"
+                    )
+
+            except User.DoesNotExist:
+                pass  # deixa o Django lidar com user inexistente
+
+        # chama validação normal (inclui autenticação)
+        return super().clean()
+
 
         
 

@@ -18,6 +18,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.utils.http import urlsafe_base64_decode
 from django.contrib.auth import get_user_model
+from controledegastos.utils.email_async import EmailThread
 
 
 def mes_anterior(data_ref):
@@ -88,13 +89,13 @@ def register(request):
                 "Se você não fez este cadastro, ignore este e-mail.\n"
             )
 
-            send_mail(
+            EmailThread(
                 assunto,
                 mensagem,
-                'no-reply@seudominio.com',
+                "no-reply@seudominio.com",
                 [user.email],
-                fail_silently=False,
-            )
+                fail_silently=False
+            ).start()
 
             messages.success(request, "Conta criada! Verifique seu email para ativar.")
             return redirect('controledegastos:login')
@@ -106,7 +107,7 @@ def register(request):
         'is_register': True,
         'form': form,
         'form_name': 'Registrar',
-        'form_action': '',  # mantém ação padrão
+        'form_action': '',
     })
 
 def login(request):
