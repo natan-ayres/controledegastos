@@ -11,13 +11,10 @@
   {% block extra_head %}{% endblock %}
 </head>
 <body class="flex flex-col min-h-screen bg-gray-100 text-gray-800">
-    {% include "partials/header.html" %}
 
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
     {% block content %}{% endblock %}
   </main>
-  
-  {% include "partials/footer.html" %}
 
   {% block extra_js %}{% endblock %}
 </body>

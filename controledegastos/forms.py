@@ -2,7 +2,84 @@ from controledegastos.models import Despesas, Lugares, Categorias, Orcamentos, P
 from django import forms
 import re
 from django.core.exceptions import ValidationError
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
+
+class RegisterForm(forms.ModelForm):
+    password = forms.CharField(
+        label="Senha",
+        widget=forms.PasswordInput(attrs={
+            "class": "input",
+            "placeholder": "Digite sua senha"
+        })
+    )
+
+    confirm_password = forms.CharField(
+        label="Confirmar senha",
+        widget=forms.PasswordInput(attrs={
+            "class": "input",
+            "placeholder": "Repita sua senha"
+        })
+    )
+
+    class Meta:
+        model = User
+        fields = ["username", "email", "password"]
+        labels = {
+            "username": "Usuário",
+            "email": "E-mail",
+        }
+        widgets = {
+            "username": forms.TextInput(attrs={
+                "class": "input",
+                "placeholder": "Digite seu nome de usuário"
+            }),
+            "email": forms.EmailInput(attrs={
+                "class": "input",
+                "placeholder": "Digite seu e-mail"
+            }),
+        }
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if User.objects.filter(email=email).exists():
+            raise ValidationError("Este e-mail já está em uso.")
+        return email
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        confirm_password = cleaned_data.get("confirm_password")
+
+        if password != confirm_password:
+            raise ValidationError("As senhas não coincidem.")
+
+        return cleaned_data
+
+class LoginForm(AuthenticationForm):
+    username = forms.CharField(
+        label="Usuário",
+        widget=forms.TextInput(attrs={
+            "class": "input",
+            "placeholder": "Digite seu usuário"
+        })
+    )
+    password = forms.CharField(
+        label="Senha",
+        widget=forms.PasswordInput(attrs={
+            "class": "input",
+            "placeholder": "Digite sua senha"
+        })
+    )
+
+    def confirm_login_allowed(self, user):
+        if not user.is_active:
+            raise ValidationError(
+                "Sua conta ainda não foi verificada. Verifique seu e-mail.",
+                code="inactive",
+            )
+
+        
 
 class EditarUsuarioForm(forms.ModelForm):
     class Meta:

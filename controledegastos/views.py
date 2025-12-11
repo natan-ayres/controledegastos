@@ -3,13 +3,22 @@ from django.contrib import messages
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from controledegastos.models import Lugares, Categorias, Despesas, Orcamentos, Previstas, CartoesCredito, DespesasCredito
-from .forms import LugaresForm, CategoriasForm, DespesasForm, OrcamentosForm, EditarUsuarioForm, PrevistasForm, CartoesCreditoForm, DespesasCreditoForm
+from .forms import LugaresForm, CategoriasForm, DespesasForm, OrcamentosForm, EditarUsuarioForm, PrevistasForm, CartoesCreditoForm, DespesasCreditoForm, RegisterForm, LoginForm
 from django.contrib import auth
-from django.contrib.auth.forms import AuthenticationForm
 import datetime
 from datetime import date, timedelta
 from calendar import monthrange
 from django.db.models import Sum, F, Q
+from django.contrib.auth.models import User
+from django.contrib.sites.shortcuts import get_current_site
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.template.loader import render_to_string
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.utils.http import urlsafe_base64_decode
+from django.contrib.auth import get_user_model
+
 
 def mes_anterior(data_ref):
     ano = data_ref.year
@@ -33,21 +42,89 @@ def mes_posterior(data_ref):
     dia = min(data_ref.day, ultimo)
     return date(ano, mes, dia)
 
-def login(request):
-    form = AuthenticationForm(request)
-    
+def ativar_conta(request, uidb64, token):
+    User = get_user_model()
+
+    try:
+        uid = urlsafe_base64_decode(uidb64).decode()
+        user = User.objects.get(pk=uid)
+    except:
+        user = None
+
+    if user is not None and default_token_generator.check_token(user, token):
+        user.is_active = True
+        user.save()
+        messages.success(request, "Conta ativada com sucesso! Você já pode fazer login.")
+        return redirect('controledegastos:login')
+
+    messages.error(request, "Link inválido ou expirado.")
+    return redirect('controledegastos:login')
+
+def register(request):
     if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
+        form = RegisterForm(request.POST)
+
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.is_active = False
+            user.set_password(form.cleaned_data['password'])
+            user.save()
+
+            # token
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+
+            # link
+            domain = get_current_site(request).domain
+            link_ativacao = f"http://{domain}/ativar/{uid}/{token}/"
+
+            # email
+            assunto = "Ative sua conta"
+            mensagem = (
+                f"Olá {user.username},\n\n"
+                "Obrigado por se registrar!\n"
+                "Clique no link abaixo para ativar sua conta:\n\n"
+                f"{link_ativacao}\n\n"
+                "Se você não fez este cadastro, ignore este e-mail.\n"
+            )
+
+            send_mail(
+                assunto,
+                mensagem,
+                'no-reply@seudominio.com',
+                [user.email],
+                fail_silently=False,
+            )
+
+            messages.success(request, "Conta criada! Verifique seu email para ativar.")
+            return redirect('controledegastos:login')
+
+    else:
+        form = RegisterForm()
+
+    return render(request, 'login_register.html', {
+        'is_register': True,
+        'form': form,
+        'form_name': 'Registrar',
+        'form_action': '',  # mantém ação padrão
+    })
+
+def login(request):
+    if request.method == 'POST':
+        form = LoginForm(data=request.POST)
+
         if form.is_valid():
             user = form.get_user()
             auth.login(request, user)
             return redirect('controledegastos:index')
-    
+    else:
+        form = LoginForm()
+
     return render(
         request,
-        'form.html',
+        'login_register.html',
         {
-            'logado': False,
+            'is_register': False,
             'form': form,
             'form_name': 'Login',
             'form_action': reverse('controledegastos:login'),
@@ -68,7 +145,6 @@ def editperfil(request):
         form = EditarUsuarioForm(instance=request.user)
 
     context = {
-        'logado': True,
         'form': form,
         'form_name': 'Editar Perfil',
         'username': request.user.username,
@@ -85,6 +161,8 @@ def editperfil(request):
 def perfil(request):
     if not request.user.is_authenticated:
         return redirect('controledegastos:login')
+    
+    
 
     context = {
         'logado': True,
@@ -106,6 +184,8 @@ def logout(request):
 def indexmeses(request, mes, ano):
     if not request.user.is_authenticated:
         return redirect('controledegastos:login')
+    
+    
 
     ano_atual = ano
     mes_atual = mes
@@ -233,6 +313,8 @@ def indexmeses(request, mes, ano):
 def index(request):
     if not request.user.is_authenticated:
         return redirect('controledegastos:login')
+    
+    
 
     hoje = datetime.date.today()
     ano_atual = hoje.year
@@ -352,6 +434,8 @@ def index(request):
 def orcamentos(request):
     if not request.user.is_authenticated:
         return redirect('controledegastos:login')
+    
+    
 
     # === LISTA BASE ===
     orcamentos = Orcamentos.objects.filter(
@@ -415,6 +499,11 @@ def orcamentos(request):
     return render(request, "orcamentos.html", context)
 
 def categorias(request):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+
     try:
         hoje = datetime.date.today()
 
@@ -477,6 +566,11 @@ def categorias(request):
         )
 
 def lugares(request):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         hoje = datetime.date.today()
 
@@ -540,6 +634,11 @@ def lugares(request):
         )
     
 def previstas(request):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         previstas = Previstas.objects \
             .order_by('-id') \
@@ -575,6 +674,11 @@ def previstas(request):
         )
 
 def creditos(request):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         creditos = CartoesCredito.objects.filter(usuario=request.user).order_by('-id')
         hoje = date.today()
@@ -670,6 +774,8 @@ def creditos(request):
 def despesascredito(request, credito_id):
     if not request.user.is_authenticated:
         return redirect('controledegastos:login')
+    
+    
 
     hoje = date.today()
     ano = int(request.GET.get("ano", hoje.year))
@@ -770,6 +876,11 @@ def despesascredito(request, credito_id):
     
 
 def orcamento(request, orcamento_id):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         single_orcamento = Orcamentos.objects.get(pk=orcamento_id, usuario=request.user)
     except Orcamentos.DoesNotExist:
@@ -792,6 +903,11 @@ def orcamento(request, orcamento_id):
     )
 
 def despesa(request, despesa_id):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         single_despesa = Despesas.objects.get(pk=despesa_id, usuario=request.user)
     except Despesas.DoesNotExist:
@@ -814,6 +930,11 @@ def despesa(request, despesa_id):
     )
 
 def lugar(request, lugar_id):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         single_lugar = Lugares.objects.get(pk=lugar_id, usuario=request.user)
     except Lugares.DoesNotExist:
@@ -902,6 +1023,11 @@ def lugar(request, lugar_id):
 
 
 def categoria(request, categoria_id):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         single_categoria = Categorias.objects.get(pk=categoria_id, usuario=request.user)
     except Categorias.DoesNotExist:
@@ -991,6 +1117,11 @@ def categoria(request, categoria_id):
     })
 
 def prevista(request, prevista_id):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         single_prevista = Previstas.objects.get(pk=prevista_id, usuario=request.user)
     except Previstas.DoesNotExist:
@@ -1013,6 +1144,11 @@ def prevista(request, prevista_id):
     )
 
 def despesacredito(request, despesa_id):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     # Busca a despesa do cartão associada ao usuário logado
     try:
         despesa = DespesasCredito.objects.get(pk=despesa_id, usuario=request.user)
@@ -1035,6 +1171,11 @@ def despesacredito(request, despesa_id):
 
 
 def createorcamento(request):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     form_action = reverse('controledegastos:criarorcamento')
 
     if request.method == 'POST':
@@ -1077,6 +1218,11 @@ def createorcamento(request):
     )
 
 def createlugar(request):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     form_action = reverse('controledegastos:criarlugar')
 
     if request.method == 'POST':
@@ -1120,6 +1266,11 @@ def createlugar(request):
     )
 
 def createcategoria(request):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     form_action = reverse('controledegastos:criarcategoria')
 
     if request.method == 'POST':
@@ -1163,6 +1314,11 @@ def createcategoria(request):
     )
 
 def createdespesa(request):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     form_action = reverse('controledegastos:criardespesa')
 
     if request.method == 'POST':
@@ -1206,6 +1362,11 @@ def createdespesa(request):
     )
 
 def createprevista(request):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     form_action = reverse('controledegastos:criarprevista')
 
     if request.method == 'POST':
@@ -1249,6 +1410,11 @@ def createprevista(request):
     )
 
 def createcredito(request):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     form_action = reverse('controledegastos:criarcartao')
 
     if request.method == 'POST':
@@ -1292,6 +1458,11 @@ def createcredito(request):
     )
 
 def createdespesacredito(request):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     form_action = reverse('controledegastos:criardespesacredito')
 
     if request.method == 'POST':
@@ -1335,6 +1506,11 @@ def createdespesacredito(request):
     )
 
 def deleteorcamento(request, orcamento_id):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         orcamento = Orcamentos.objects.get(pk=orcamento_id, usuario=request.user)
         orcamento.delete()
@@ -1345,6 +1521,11 @@ def deleteorcamento(request, orcamento_id):
     return redirect('controledegastos:orcamentos')
 
 def deletedespesa(request, despesa_id):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         despesa = Despesas.objects.get(pk=despesa_id, usuario=request.user)
         despesa.delete()
@@ -1355,6 +1536,11 @@ def deletedespesa(request, despesa_id):
     return redirect('controledegastos:index')
 
 def deletelugar(request, lugar_id):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         lugar = Lugares.objects.get(pk=lugar_id, usuario=request.user)
         lugar.delete()
@@ -1365,6 +1551,11 @@ def deletelugar(request, lugar_id):
     return redirect('controledegastos:lugares')
 
 def deletecategoria(request, categoria_id):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         categoria = Categorias.objects.get(pk=categoria_id, usuario=request.user)
         categoria.delete()
@@ -1375,6 +1566,11 @@ def deletecategoria(request, categoria_id):
     return redirect('controledegastos:categorias')
 
 def deleteprevista(request, prevista_id):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         prevista = Previstas.objects.get(pk=prevista_id, usuario=request.user)
         prevista.delete()
@@ -1385,6 +1581,11 @@ def deleteprevista(request, prevista_id):
     return redirect('controledegastos:previstas')
 
 def deletecartao(request, cartao_id):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         cartao = CartoesCredito.objects.get(pk=cartao_id, usuario=request.user)
         despesas_associadas = DespesasCredito.objects.filter(cartao=cartao)
@@ -1397,6 +1598,11 @@ def deletecartao(request, cartao_id):
     return redirect('controledegastos:creditos')
 
 def deletedespesacredito(request, despesa_id):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         despesa = DespesasCredito.objects.get(pk=despesa_id, usuario=request.user)
         despesa.delete()
@@ -1407,6 +1613,11 @@ def deletedespesacredito(request, despesa_id):
     return redirect('controledegastos:creditos')
 
 def editorcamento(request, orcamento_id):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         orcamento = Orcamentos.objects.get(pk=orcamento_id, usuario=request.user)
     except Orcamentos.DoesNotExist:
@@ -1455,6 +1666,11 @@ def editorcamento(request, orcamento_id):
     )
 
 def editdespesa(request, despesa_id):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         despesa = Despesas.objects.get(pk=despesa_id, usuario=request.user)
     except Despesas.DoesNotExist:
@@ -1503,6 +1719,11 @@ def editdespesa(request, despesa_id):
     )
 
 def editcategoria(request, categoria_id):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         categoria = Categorias.objects.get(pk=categoria_id, usuario=request.user)
     except Categorias.DoesNotExist:
@@ -1551,6 +1772,11 @@ def editcategoria(request, categoria_id):
     )
 
 def editlugar(request, lugar_id):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         lugar = Lugares.objects.get(pk=lugar_id, usuario=request.user)
     except Lugares.DoesNotExist:
@@ -1599,6 +1825,11 @@ def editlugar(request, lugar_id):
     )
 
 def editprevista(request, prevista_id):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         prevista = Previstas.objects.get(pk=prevista_id, usuario=request.user)
     except Previstas.DoesNotExist:
@@ -1647,6 +1878,11 @@ def editprevista(request, prevista_id):
     )
 
 def editcredito(request, cartao_id):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         credito = CartoesCredito.objects.get(pk=cartao_id, usuario=request.user)
     except CartoesCredito.DoesNotExist:
@@ -1695,6 +1931,11 @@ def editcredito(request, cartao_id):
     )
 
 def editdespesacredito(request, despesa_id):
+    if not request.user.is_authenticated:
+        return redirect('controledegastos:login')
+    
+    
+    
     try:
         despesa = DespesasCredito.objects.get(pk=despesa_id, usuario=request.user)
     except DespesasCredito.DoesNotExist:

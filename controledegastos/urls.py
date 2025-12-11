@@ -1,5 +1,5 @@
 from django.urls import path
-from controledegastos.views import index, indexmeses, login, createorcamento, createcategoria, createdespesa, createlugar, createprevista, createcredito, createdespesacredito, orcamento, lugar, despesa, categoria, prevista, despesacredito, orcamentos, lugares, categorias, previstas, creditos, despesascredito, deleteorcamento, deletedespesa, deletecategoria, deletelugar, deleteprevista, deletecartao, deletedespesacredito, editorcamento, editdespesa, editcategoria, editlugar, editprevista, editcredito, editdespesacredito, logout, editperfil, perfil
+from controledegastos.views import index, indexmeses, login, register, createorcamento, createcategoria, createdespesa, createlugar, createprevista, createcredito, createdespesacredito, orcamento, lugar, despesa, categoria, prevista, despesacredito, orcamentos, lugares, categorias, previstas, creditos, despesascredito, deleteorcamento, deletedespesa, deletecategoria, deletelugar, deleteprevista, deletecartao, deletedespesacredito, editorcamento, editdespesa, editcategoria, editlugar, editprevista, editcredito, editdespesacredito, logout, editperfil, perfil, ativar_conta
 app_name = 'controledegastos'
 
 urlpatterns = [
@@ -38,7 +38,9 @@ urlpatterns = [
     path('editar/prevista/<int:prevista_id>/', editprevista, name='editarprevista'),
     path('editar/credito/<int:cartao_id>/', editcredito, name='editarcartao'),
     path('editar/despesacredito/<int:despesa_id>/', editdespesacredito, name='editardespesacredito'),
+    path('ativar/<uidb64>/<token>/', ativar_conta, name='ativar_conta'),
     path('login/', login, name='login'),
+    path('cadastro/', register, name='register'),
     path('logout/', logout, name='logout'),
     path('editar/perfil/', editperfil, name='editperfil'),
     path('perfil/', perfil, name='perfil'),
