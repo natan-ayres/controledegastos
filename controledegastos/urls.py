@@ -1,5 +1,5 @@
 from django.urls import path
-from controledegastos.views import index, indexmeses, login, register, createorcamento, createcategoria, createdespesa, createlugar, createprevista, createcredito, createdespesacredito, orcamento, lugar, despesa, categoria, prevista, despesacredito, orcamentos, lugares, categorias, previstas, creditos, despesascredito, deleteorcamento, deletedespesa, deletecategoria, deletelugar, deleteprevista, deletecartao, deletedespesacredito, editorcamento, editdespesa, editcategoria, editlugar, editprevista, editcredito, editdespesacredito, logout, editperfil, perfil, ativar_conta
+from controledegastos.views import index, indexmeses, login, register, createorcamento, createcategoria, createdespesa, createlugar, createprevista, createcredito, createdespesacredito, orcamento, lugar, despesa, categoria, prevista, despesacredito, orcamentos, lugares, categorias, previstas, creditos, despesascredito, deleteorcamento, deletedespesa, deletecategoria, deletelugar, deleteprevista, deletecartao, deletedespesacredito, editorcamento, editdespesa, editcategoria, editlugar, editprevista, editcredito, editdespesacredito, logout, editperfil, perfil, ativar_conta, ative_seu_email
 app_name = 'controledegastos'
 
 urlpatterns = [
@@ -39,6 +39,7 @@ urlpatterns = [
     path('editar/credito/<int:cartao_id>/', editcredito, name='editarcartao'),
     path('editar/despesacredito/<int:despesa_id>/', editdespesacredito, name='editardespesacredito'),
     path('ativar/<uidb64>/<token>/', ativar_conta, name='ativar_conta'),
+    path('ative-seu-email/<uid>/', ative_seu_email, name='ative_email'),
     path('login/', login, name='login'),
     path('cadastro/', register, name='register'),
     path('logout/', logout, name='logout'),

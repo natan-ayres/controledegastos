@@ -1,8 +1,13 @@
 asgiref==3.10.0
+certifi==2025.11.12
 dj-database-url==3.0.1
 Django==5.2.8
 gunicorn==23.0.0
 packaging==25.0
 psycopg2-binary==2.9.11
+python-dateutil==2.9.0.post0
+sib-api-v3-sdk==7.6.0
+six==1.17.0
 sqlparse==0.5.3
+urllib3==2.6.2
 whitenoise==6.11.0

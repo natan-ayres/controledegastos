@@ -9,16 +9,17 @@ import datetime
 from datetime import date, timedelta
 from calendar import monthrange
 from django.db.models import Sum, F, Q
-from django.contrib.auth.models import User
 from django.contrib.sites.shortcuts import get_current_site
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
-from django.template.loader import render_to_string
 from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import send_mail
 from django.utils.http import urlsafe_base64_decode
 from django.contrib.auth import get_user_model
-from controledegastos.utils.email_async import EmailThread
+from local_settings import API_KEY, EMAIL_OWNER
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
+from django.core.exceptions import ValidationError
+from django.core.cache import cache
 
 
 def mes_anterior(data_ref):
@@ -42,6 +43,92 @@ def mes_posterior(data_ref):
     ultimo = monthrange(ano, mes)[1]
     dia = min(data_ref.day, ultimo)
     return date(ano, mes, dia)
+
+def ative_seu_email(request, uid):
+    User = get_user_model()
+
+    # tentar recuperar o usuário
+    try:
+        uid_decoded = urlsafe_base64_decode(uid).decode()
+        user = User.objects.get(pk=uid_decoded)
+    except Exception:
+        user = None
+
+    if not user:
+        return redirect('controledegastos:login')
+
+    cooldown_key = f"reativar_email_cooldown_{request.user.id}"
+    if request.method == 'POST':
+        if cache.get(cooldown_key):
+            messages.error(request, "Você já reenviou o e-mail recentemente. Aguarde 5 minutos.")
+            return redirect("controledegastos:ative_seu_email")
+        enviar_email(user, uid)
+        messages.success(request, "E-mail de ativação enviado novamente. Verifique sua caixa de entrada.")
+        cache.set(cooldown_key, True, 300)  # 5 minutos de cooldown
+
+    context = {
+        'site_title': 'Ative seu email - ',
+        'username': user.username,
+        'email': user.email,
+        'uid': uid,
+    }
+
+    return render(request, 'ative_seu_email.html', context)
+
+def enviar_email(user, uid):
+    token = default_token_generator.make_token(user)
+    link_ativacao = f"http://construtora-gastos.onrender.com/ativar/{uid}/{token}/"
+    assunto = "Ative sua conta"
+    mensagem = f"""
+        <!DOCTYPE html>
+        <html lang="pt-BR" style="font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 20px;">
+        <body style="max-width: 600px; margin: auto; background: #ffffff; padding: 30px; border-radius: 8px; border: 1px solid #e5e5e5;">
+            
+            <h2 style="color: #333; text-align: center;">Ativação de Conta</h2>
+
+            <p style="font-size: 16px; color: #555;">
+                Olá <strong>{user.username}</strong>,
+            </p>
+
+            <p style="font-size: 16px; color: #555;">
+                Obrigado por criar sua conta em nossa plataforma. Para começar a utilizá-la, precisamos confirmar seu endereço de e-mail.
+            </p>
+
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{link_ativacao}" 
+                style="background-color: #4CAF50; color: white; padding: 14px 24px; text-decoration: none; border-radius: 6px; font-size: 16px;">
+                    Ativar Conta
+                </a>
+            </div>
+
+            <p style="font-size: 16px; color: #555;">Ou, se preferir, copie e cole o link abaixo no seu navegador:</p>
+
+            <p style="font-size: 14px; word-break: break-all; color: #777;">
+                {link_ativacao}
+            </p>
+
+            <hr style="margin: 30px 0;">
+
+            <p style="font-size: 14px; color: #999;">
+                Se você não realizou este cadastro, basta ignorar este e-mail.
+            </p>
+
+            <p style="font-size: 14px; color: #999;">
+                Atenciosamente,<br>
+                Equipe de Suporte
+            </p>
+        </body>
+        </html>
+        """
+
+    message = Mail(
+        from_email= EMAIL_OWNER,
+        to_emails= user.email,
+        subject=assunto,
+        html_content=mensagem)
+    sg = SendGridAPIClient(API_KEY)
+    sg.send(message)
+
 
 def ativar_conta(request, uidb64, token):
     User = get_user_model()
@@ -70,35 +157,9 @@ def register(request):
             user.is_active = False
             user.set_password(form.cleaned_data['password'])
             user.save()
-
-            # token
             uid = urlsafe_base64_encode(force_bytes(user.pk))
-            token = default_token_generator.make_token(user)
-
-            # link
-            domain = get_current_site(request).domain
-            link_ativacao = f"http://{domain}/ativar/{uid}/{token}/"
-
-            # email
-            assunto = "Ative sua conta"
-            mensagem = (
-                f"Olá {user.username},\n\n"
-                "Obrigado por se registrar!\n"
-                "Clique no link abaixo para ativar sua conta:\n\n"
-                f"{link_ativacao}\n\n"
-                "Se você não fez este cadastro, ignore este e-mail.\n"
-            )
-
-            EmailThread(
-                assunto,
-                mensagem,
-                "no-reply@seudominio.com",
-                [user.email],
-                fail_silently=False
-            ).start()
-
-            messages.success(request, "Conta criada! Verifique seu email para ativar.")
-            return redirect('controledegastos:login')
+            enviar_email(user, uid)
+            return redirect('controledegastos:ative_email', uid)
 
     else:
         form = RegisterForm()
@@ -107,17 +168,42 @@ def register(request):
         'is_register': True,
         'form': form,
         'form_name': 'Registrar',
-        'form_action': '',
+        'form_action': '',  # mantém ação padrão
     })
 
 def login(request):
     if request.method == 'POST':
         form = LoginForm(data=request.POST)
 
-        if form.is_valid():
-            user = form.get_user()
-            auth.login(request, user)
-            return redirect('controledegastos:index')
+        try:
+            if form.is_valid():
+                user = form.get_user()
+                auth.login(request, user)
+                return redirect('controledegastos:index')
+
+        except ValidationError as e:
+            # Verifica se o erro é o de conta inativa
+            if "inactive" in e.error_list[0].code:
+                # Recupera o usuário do formulário
+                username = form.cleaned_data.get("username")
+                # Ou o nome do campo que você usa no LoginForm
+                
+                # Busca o usuário
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+
+                try:
+                    user = User.objects.get(username=username)
+                except User.DoesNotExist:
+                    user = None
+
+                if user:
+                    uid = urlsafe_base64_encode(force_bytes(user.pk))
+                    return redirect('controledegastos:ative_email', uid=uid)
+
+            # Se não for erro de conta inativa, apenas exibe o erro no form
+            form.add_error(None, e)
+
     else:
         form = LoginForm()
 
