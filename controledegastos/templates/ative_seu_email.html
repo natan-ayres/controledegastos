@@ -5,61 +5,92 @@
 
 {% block content %}
 
-<div class="flex flex-col items-center justify-center mt-16 px-4">
+<div class="bg-gray-100 min-h-screen py-12 px-4 flex items-center justify-center">
 
-  <div class="bg-white shadow-lg rounded-xl p-10 w-full max-w-lg text-center">
+    <div class="bg-white shadow-xl rounded-2xl p-10 w-full max-w-xl border border-gray-200">
 
-    <h1 class="text-3xl font-bold text-gray-800 mb-4">
-      Ative sua Conta
-    </h1>
+        <!-- Ícone superior -->
+        <div class="flex justify-center mb-6">
+            <div class="bg-red-700 rounded-full p-3 sm:p-4 shadow-md">
+                <svg class="w-10 h-10 sm:w-12 sm:h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                    </path>
+                </svg>
+            </div>
+        </div>
 
-    <p class="text-gray-600 text-base mb-4">
-      Olá <span class="font-semibold text-gray-900">{{ username }}</span>,
-    </p>
+        <!-- Título -->
+        <h1 class="text-3xl font-bold text-gray-800 text-center mb-2">
+            Ative sua Conta
+        </h1>
 
-    <p class="text-gray-600 text-base mb-6">
-      Sua conta ainda não foi ativada. Enviamos um e-mail de verificação para:
-    </p>
-
-    <div class="bg-gray-100 border rounded-lg p-4 mb-6">
-      <p class="text-gray-900 text-lg font-semibold break-all">
-        {{ email }}
-      </p>
-    </div>
-
-    <p class="text-gray-600 text-sm mb-6">
-      Caso ainda não tenha recebido o e-mail em até 5 minutos, verifique também sua caixa de spam ou lixo eletrônico.
-      Se ainda assim não encontrar, você pode reenviar clicando no botão abaixo.
-    </p>
-
-    {# ENVIA POST PARA A PRÓPRIA VIEW #}
-    <form method="POST" 
-          class="w-full bg-white border border-red-200 rounded-2xl p-6 shadow-lg mt-6">
-      
-        {% csrf_token %}
-
-        <h2 class="text-lg font-semibold text-gray-800 mb-3">
-            Reenviar e-mail de ativação
-        </h2>
-
-        <p class="text-sm text-gray-600 mb-6">
-            Você poderá reenviar novamente em 5 minutos.
+        <p class="text-red-700 text-center mb-6 font-semibold">
+            Estamos quase lá
         </p>
 
-        <button type="submit"
-            class="w-full bg-red-600 hover:bg-red-700 active:bg-red-800
-                   text-white font-semibold py-3 rounded-xl shadow-md
-                   transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed">
-            Reenviar e-mail
-        </button>
-    </form>
+        <!-- Saudação -->
+        <p class="text-gray-700 text-center text-lg mb-2">
+            Olá <span class="font-bold text-gray-900">{{ username }}</span>
+        </p>
 
-    <a href="{% url 'controledegastos:login' %}"
-       class="block mt-6 text-green-700 hover:text-green-900 font-medium transition">
-      Voltar ao login
-    </a>
+        <p class="text-gray-600 text-center mb-6 leading-relaxed">
+            Enviamos um e-mail de verificação para:
+        </p>
 
-  </div>
+        <!-- Card de e-mail -->
+        <div class="bg-white border-l-4 border-red-600 rounded-md px-5 py-4 shadow-sm mb-8">
+    <div class="flex items-center justify-center min-w-0">
+        <span class="text-gray-900 text-lg font-semibold break-words whitespace-normal max-w-full">
+            {{ email }}
+        </span>
+    </div>
+</div>
+
+
+
+        <!-- Aviso -->
+        <div class="bg-yellow-50 border-l-4 border-yellow-500 rounded-md p-4 mb-8">
+            <p class="text-gray-700 text-sm text-center">
+                Caso você não receba o e-mail dentro de <strong>5 minutos</strong>, verifique sua caixa de <strong>spam</strong>.
+                Se não encontrar, você pode reenviar abaixo.
+            </p>
+        </div>
+
+        <!-- Form de reenviar -->
+        <form method="POST"
+              class="bg-white p-6 transition-shadow">
+            {% csrf_token %}
+            
+            {% if messages %}
+                {% for message in messages %}
+                    <p class="text-sm text-gray-600 text-center mb-6">
+                        {{ message }}
+                    </p>
+                {% endfor %}
+            {% endif %}
+
+            <button type="submit"
+                class="w-full bg-red-700 hover:bg-red-800 text-white font-semibold py-3 rounded-lg shadow-md transition cursor-pointer">
+                Reenviar e-mail
+            </button>
+        </form>
+
+        <!-- Voltar -->
+        <div class="text-center mt-8">
+            <a href="{% url 'controledegastos:login' %}"
+               class="inline-flex items-center gap-2 text-red-700 hover:text-red-900 font-medium transition">
+                <svg class="w-4 h-4 transform transition-transform group-hover:-translate-x-1"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M10 19l-7-7m0 0l7-7m-7 7h18">
+                    </path>
+                </svg>
+                Voltar ao login
+            </a>
+        </div>
+
+    </div>
 
 </div>
 

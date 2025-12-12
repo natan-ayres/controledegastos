@@ -61,10 +61,8 @@ def ative_seu_email(request, uid):
     if request.method == 'POST':
         if cache.get(cooldown_key):
             messages.error(request, "Você já reenviou o e-mail recentemente. Aguarde 5 minutos.")
-            return redirect("controledegastos:ative_seu_email")
         enviar_email(user, uid)
-        messages.success(request, "E-mail de ativação enviado novamente. Verifique sua caixa de entrada.")
-        cache.set(cooldown_key, True, 300)  # 5 minutos de cooldown
+        cache.set(cooldown_key, True, 300)  
 
     context = {
         'site_title': 'Ative seu email - ',
@@ -142,10 +140,8 @@ def ativar_conta(request, uidb64, token):
     if user is not None and default_token_generator.check_token(user, token):
         user.is_active = True
         user.save()
-        messages.success(request, "Conta ativada com sucesso! Você já pode fazer login.")
         return redirect('controledegastos:login')
 
-    messages.error(request, "Link inválido ou expirado.")
     return redirect('controledegastos:login')
 
 def register(request):
@@ -226,7 +222,6 @@ def editperfil(request):
         form = EditarUsuarioForm(request.POST, instance=request.user)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Perfil atualizado com sucesso.')
             return redirect('controledegastos:perfil')
     else:
         form = EditarUsuarioForm(instance=request.user)
@@ -876,7 +871,6 @@ def despesascredito(request, credito_id):
     try: 
         cartao = CartoesCredito.objects.get(id=credito_id, usuario=request.user)
     except CartoesCredito.DoesNotExist:
-        messages.error(request, 'Cartão de crédito não existente')
         return redirect('controledegastos:creditos')
 
     # ============================
@@ -971,7 +965,6 @@ def orcamento(request, orcamento_id):
     try:
         single_orcamento = Orcamentos.objects.get(pk=orcamento_id, usuario=request.user)
     except Orcamentos.DoesNotExist:
-        messages.error(request, 'Orçamento não existente')
         return redirect('controledegastos:index')
 
     site_title = f'{single_orcamento.nome} - {single_orcamento.valor}({single_orcamento.data})'
@@ -998,7 +991,6 @@ def despesa(request, despesa_id):
     try:
         single_despesa = Despesas.objects.get(pk=despesa_id, usuario=request.user)
     except Despesas.DoesNotExist:
-        messages.error(request, 'Despesa não existente')
         return redirect('controledegastos:index')
 
     site_title = f'{single_despesa.nome} - {single_despesa.valor}({single_despesa.data})'
@@ -1025,7 +1017,6 @@ def lugar(request, lugar_id):
     try:
         single_lugar = Lugares.objects.get(pk=lugar_id, usuario=request.user)
     except Lugares.DoesNotExist:
-        messages.error(request, 'Lugar não existente')
         return redirect('controledegastos:index')
 
     site_title = f'Lugar: {single_lugar.nome}'
@@ -1118,7 +1109,6 @@ def categoria(request, categoria_id):
     try:
         single_categoria = Categorias.objects.get(pk=categoria_id, usuario=request.user)
     except Categorias.DoesNotExist:
-        messages.error(request, 'Categoria não existente')
         return redirect('controledegastos:index')
 
     site_title = f'Categoria: {single_categoria.nome}'
@@ -1212,7 +1202,6 @@ def prevista(request, prevista_id):
     try:
         single_prevista = Previstas.objects.get(pk=prevista_id, usuario=request.user)
     except Previstas.DoesNotExist:
-        messages.error(request, 'Despesa Prevista não existente')
         return redirect('controledegastos:previstas')
 
     site_title = f'{single_prevista.nome} - {single_prevista.valor}({single_prevista.data_prevista})'
@@ -1240,7 +1229,6 @@ def despesacredito(request, despesa_id):
     try:
         despesa = DespesasCredito.objects.get(pk=despesa_id, usuario=request.user)
     except DespesasCredito.DoesNotExist:
-        messages.error(request, 'Despesa de cartão de crédito não encontrada.')
         return redirect('controledegastos:creditos')
 
     # Título da aba do navegador
@@ -1596,14 +1584,11 @@ def deleteorcamento(request, orcamento_id):
     if not request.user.is_authenticated:
         return redirect('controledegastos:login')
     
-    
-    
     try:
         orcamento = Orcamentos.objects.get(pk=orcamento_id, usuario=request.user)
         orcamento.delete()
-        messages.success(request, 'Orçamento deletado com sucesso.')
     except Orcamentos.DoesNotExist:
-        messages.error(request, 'Orçamento não encontrado.')
+        return redirect('controledegastos:orcamentos')
 
     return redirect('controledegastos:orcamentos')
 
@@ -1616,9 +1601,8 @@ def deletedespesa(request, despesa_id):
     try:
         despesa = Despesas.objects.get(pk=despesa_id, usuario=request.user)
         despesa.delete()
-        messages.success(request, 'Despesa deletada com sucesso.')
     except Despesas.DoesNotExist:
-        messages.error(request, 'Despesa não encontrada.')
+        return redirect('controledegastos:index')
 
     return redirect('controledegastos:index')
 
@@ -1631,9 +1615,8 @@ def deletelugar(request, lugar_id):
     try:
         lugar = Lugares.objects.get(pk=lugar_id, usuario=request.user)
         lugar.delete()
-        messages.success(request, 'Lugar deletado com sucesso.')
     except Lugares.DoesNotExist:
-        messages.error(request, 'Lugar não encontrado.')
+        return redirect('controledegastos:lugares')
 
     return redirect('controledegastos:lugares')
 
@@ -1646,9 +1629,8 @@ def deletecategoria(request, categoria_id):
     try:
         categoria = Categorias.objects.get(pk=categoria_id, usuario=request.user)
         categoria.delete()
-        messages.success(request, 'Categoria deletada com sucesso.')
     except Categorias.DoesNotExist:
-        messages.error(request, 'Categoria não encontrada.')
+        return redirect('controledegastos:categorias')
 
     return redirect('controledegastos:categorias')
 
@@ -1661,9 +1643,8 @@ def deleteprevista(request, prevista_id):
     try:
         prevista = Previstas.objects.get(pk=prevista_id, usuario=request.user)
         prevista.delete()
-        messages.success(request, 'Despesa Prevista deletada com sucesso.')
     except Previstas.DoesNotExist:
-        messages.error(request, 'Despesa Prevista não encontrada.')
+        return redirect('controledegastos:previstas')
 
     return redirect('controledegastos:previstas')
 
@@ -1678,24 +1659,20 @@ def deletecartao(request, cartao_id):
         despesas_associadas = DespesasCredito.objects.filter(cartao=cartao)
         despesas_associadas.delete()
         cartao.delete()
-        messages.success(request, 'Cartão de Crédito deletado com sucesso.')
     except CartoesCredito.DoesNotExist:
-        messages.error(request, 'Cartão de Crédito não encontrado.')
+        return redirect('controledegastos:creditos')
 
     return redirect('controledegastos:creditos')
 
 def deletedespesacredito(request, despesa_id):
     if not request.user.is_authenticated:
         return redirect('controledegastos:login')
-    
-    
-    
+
     try:
         despesa = DespesasCredito.objects.get(pk=despesa_id, usuario=request.user)
         despesa.delete()
-        messages.success(request, 'Despesa de Cartão de Crédito deletada com sucesso.')
     except DespesasCredito.DoesNotExist:
-        messages.error(request, 'Despesa de Cartão de Crédito não encontrada.')
+        return redirect('controledegastos:creditos')
 
     return redirect('controledegastos:creditos')
 
@@ -1703,12 +1680,9 @@ def editorcamento(request, orcamento_id):
     if not request.user.is_authenticated:
         return redirect('controledegastos:login')
     
-    
-    
     try:
         orcamento = Orcamentos.objects.get(pk=orcamento_id, usuario=request.user)
     except Orcamentos.DoesNotExist:
-        messages.error(request, 'Orçamento não existente')
         return redirect('controledegastos:orcamentos')
 
     form_action = reverse('controledegastos:editarorcamento', args=[orcamento_id])
@@ -1761,7 +1735,6 @@ def editdespesa(request, despesa_id):
     try:
         despesa = Despesas.objects.get(pk=despesa_id, usuario=request.user)
     except Despesas.DoesNotExist:
-        messages.error(request, 'Despesa não existente')
         return redirect('controledegastos:index')
 
     form_action = reverse('controledegastos:editardespesa', args=[despesa_id])
@@ -1814,7 +1787,6 @@ def editcategoria(request, categoria_id):
     try:
         categoria = Categorias.objects.get(pk=categoria_id, usuario=request.user)
     except Categorias.DoesNotExist:
-        messages.error(request, 'Categoria não existente')
         return redirect('controledegastos:categorias')
 
     form_action = reverse('controledegastos:editarcategoria', args=[categoria_id])
@@ -1867,7 +1839,6 @@ def editlugar(request, lugar_id):
     try:
         lugar = Lugares.objects.get(pk=lugar_id, usuario=request.user)
     except Lugares.DoesNotExist:
-        messages.error(request, 'Lugar não existente')
         return redirect('controledegastos:lugares')
 
     form_action = reverse('controledegastos:editarlugar', args=[lugar_id])
@@ -1920,7 +1891,6 @@ def editprevista(request, prevista_id):
     try:
         prevista = Previstas.objects.get(pk=prevista_id, usuario=request.user)
     except Previstas.DoesNotExist:
-        messages.error(request, 'Despesa Prevista não existente')
         return redirect('controledegastos:previstas')
 
     form_action = reverse('controledegastos:editarprevista', args=[prevista_id])
@@ -1973,7 +1943,6 @@ def editcredito(request, cartao_id):
     try:
         credito = CartoesCredito.objects.get(pk=cartao_id, usuario=request.user)
     except CartoesCredito.DoesNotExist:
-        messages.error(request, 'Cartão de Crédito não existente')
         return redirect('controledegastos:creditos')
 
     form_action = reverse('controledegastos:editarcartao', args=[cartao_id])
@@ -2026,7 +1995,6 @@ def editdespesacredito(request, despesa_id):
     try:
         despesa = DespesasCredito.objects.get(pk=despesa_id, usuario=request.user)
     except DespesasCredito.DoesNotExist:
-        messages.error(request, 'Despesa de Cartão de Crédito não existente')
         return redirect('controledegastos:creditos')
 
     form_action = reverse('controledegastos:editardespesacredito', args=[despesa_id])
