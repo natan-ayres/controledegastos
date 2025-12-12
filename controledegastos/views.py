@@ -1730,8 +1730,6 @@ def editdespesa(request, despesa_id):
     if not request.user.is_authenticated:
         return redirect('controledegastos:login')
     
-    
-    
     try:
         despesa = Despesas.objects.get(pk=despesa_id, usuario=request.user)
     except Despesas.DoesNotExist:
