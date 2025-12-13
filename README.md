@@ -8,6 +8,8 @@ O **Controle de Gastos** é uma aplicação web desenvolvida em **Django**, util
 
 A aplicação foi pensada para uso individual, com dados isolados por usuário, oferecendo recursos de filtragem e visualização histórica para facilitar a tomada de decisões financeiras.
 
+O sistema foi desenvolvido de forma responsiva, funcionando em todas as telas, sendo elas desktop, tablet ou celular.
+
 ---
 
 ## Funcionalidades Principais
