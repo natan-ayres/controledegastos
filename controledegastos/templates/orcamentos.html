@@ -6,12 +6,12 @@
         <!-- HEADER -->
         <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
             <h1 class="text-3xl font-bold text-red-700 mb-4 sm:mb-0">
-                Entradas
+                Receitas
             </h1>
 
             <a href="{% url 'controledegastos:criarorcamento' %}"
                class="bg-red-700 text-white px-5 py-2 rounded-md font-semibold hover:bg-red-800 transition-colors">
-                + Nova Entrada
+                + Nova Receita
             </a>
         </div>
 
@@ -27,7 +27,7 @@
 
         <!-- FILTROS -->
         <div id="filtro-container" class="bg-white rounded-lg shadow-md p-6 mb-8 hidden sm:block">
-            <h2 class="text-lg font-semibold text-red-700 mb-4">Filtrar entradas</h2>
+            <h2 class="text-lg font-semibold text-red-700 mb-4">Filtrar receitas</h2>
 
             <form method="GET">
 
@@ -103,7 +103,7 @@
                 {% empty %}
                     <tr>
                         <td colspan="5" class="text-center py-6 text-gray-500">
-                            Nenhuma entrada encontrada.
+                            Nenhuma receita encontrada.
                         </td>
                     </tr>
                 {% endfor %}

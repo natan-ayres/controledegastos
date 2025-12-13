@@ -20,7 +20,7 @@
         <div class="sm:hidden mb-4 mt-4">
             <button id="toggle-meses"
                     aria-expanded="false"
-                    class="w-full flex items-center justify-between bg-red-700 text-white px-4 py-2 rounded-md font-semibold hover:bg-red-800 transition-colors">
+                    class="w-full flex items-center justify-between bg-red-700 text-white px-4 py-2 rounded-md font-semibold hover:bg-red-800 transition-colors cursor-pointer">
                 {% if tipo_saldo == 'Final' %}
                 <span id="toggle-meses-label">Mostrar outros meses</span>
                 {% else %}
@@ -68,7 +68,7 @@
         <div class="sm:hidden mb-4">
             <button id="toggle-saldos"
                     aria-expanded="false"
-                    class="w-full flex items-center justify-between bg-red-700 text-white px-4 py-2 rounded-md font-semibold hover:bg-red-800 transition-colors">
+                    class="w-full flex items-center justify-between bg-red-700 text-white px-4 py-2 rounded-md font-semibold hover:bg-red-800 transition-colors cursor-pointer">
                 <span id="toggle-saldos-label">Mostrar saldos</span>
                 <span id="toggle-saldos-icon" class="ml-2 text-xl">+</span>
             </button>
@@ -154,7 +154,7 @@
         <div class="sm:hidden mb-4">
             <button id="toggle-filtro"
                     aria-expanded="false"
-                    class="w-full flex items-center justify-between bg-red-700 text-white px-4 py-2 rounded-md font-semibold hover:bg-red-800 transition-colors">
+                    class="w-full flex items-center justify-between bg-red-700 text-white px-4 py-2 rounded-md font-semibold hover:bg-red-800 transition-colors cursor-pointer">
                 <span id="toggle-label">Mostrar filtros</span>
                 <span id="toggle-icon" class="ml-2 text-xl">+</span>
             </button>
@@ -209,7 +209,7 @@
                                class="w-full mt-1 px-3 py-2 border rounded-md" placeholder="R$">
                     </div>
                 </div>
-                <button class="mt-4 px-6 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800">
+                <button class="mt-4 px-6 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 cursor-pointer">
                     Aplicar filtro
                 </button>
             </form>
