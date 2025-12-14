@@ -20,8 +20,9 @@
 
         {% for cartao in page_obj %}
 
-        <div class="shadow-lg rounded-xl p-5 hover:shadow-xl transition text-white"
-    style="background-color: {{ cartao.cor }};">
+        <div class="border  shadow-lg rounded-xl p-5 hover:shadow-xl transition text-white"
+     style="background-color: {{ cartao.cor }}; border-color: #4b5563;">
+
 
     <a href="{% url 'controledegastos:despesascredito' cartao.id %}"
         class="block no-underline text-white">
