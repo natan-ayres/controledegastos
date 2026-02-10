@@ -123,7 +123,7 @@ class OrcamentosForm(forms.ModelForm):
         model = Orcamentos
         fields = ['nome', 'valor', 'descricao', 'data']
         labels = {
-            'nome': 'Nome do Orçamento',
+            'nome': 'Nome da Receita',
             'valor': 'Valor',
             'descricao': 'Descrição',
             'data': 'Data',
@@ -132,13 +132,13 @@ class OrcamentosForm(forms.ModelForm):
     def clean_valor(self):
         valor = self.cleaned_data.get('valor')
         if valor is not None and valor < 0:
-            raise ValidationError("O valor do orçamento não pode ser negativo.")
+            raise ValidationError("O valor da receita não pode ser negativo.")
         return valor
     
     def clean_data(self):
         data = self.cleaned_data.get('data')
         if data is not None and data > forms.fields.datetime.date.today():
-            raise ValidationError("A data do orçamento não pode ser no futuro.")
+            raise ValidationError("A data da receita não pode ser no futuro.")
         return data
 
 class LugaresForm(forms.ModelForm):
@@ -153,11 +153,18 @@ class LugaresForm(forms.ModelForm):
 class CategoriasForm(forms.ModelForm):
     class Meta:
         model = Categorias
-        fields = ['nome', 'descricao']
+        fields = ['nome', 'descricao', 'meta_valor']
         labels = {
             'nome': 'Nome da Categoria',
             'descricao': 'Descrição',
+            'meta_valor': 'Meta de Valor (opcional)',
         }
+
+    def clean_data(self):
+        meta_valor = self.cleaned_data.get('meta_valor')
+        if meta_valor is not None and meta_valor < 0:
+            raise ValidationError("A meta de valor não pode ser negativa.")
+        return meta_valor
 
 class DespesasForm(forms.ModelForm):
     class Meta:

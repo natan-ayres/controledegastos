@@ -1249,8 +1249,6 @@ def createorcamento(request):
     if not request.user.is_authenticated:
         return redirect('controledegastos:login')
     
-    
-    
     form_action = reverse('controledegastos:criarorcamento')
 
     if request.method == 'POST':
@@ -1259,7 +1257,7 @@ def createorcamento(request):
         context = {
             'logado': True,
             'form': form,
-            'form_name': 'Orçamento',
+            'form_name': 'Receita',
             'username': request.user.username,
             'form_action': form_action,
         }
@@ -1281,7 +1279,7 @@ def createorcamento(request):
     context = {
         'logado': True,
         'form': form,
-        'form_name': 'Orçamento',
+        'form_name': 'Receita',
         'username': request.user.username,
         'form_action': form_action,
     }

@@ -7,6 +7,12 @@ class Orcamentos(models.Model):
     descricao = models.CharField(max_length=255, null=True, blank=True)
     data = models.DateField(default=datetime.date.today)
     usuario = models.ForeignKey('auth.User', on_delete=models.CASCADE, null=True)
+    
+    def verbose_name(self):
+        return "Receita"
+    
+    def verbose_name_plural(self):
+        return "Receitas"
 
     def __str__(self):
         return self.nome
@@ -23,6 +29,13 @@ class Categorias(models.Model):
     nome = models.CharField(max_length=100)
     descricao = models.CharField(max_length=255, null=True, blank=True)
     usuario = models.ForeignKey('auth.User', on_delete=models.CASCADE, null=True)
+    meta_valor = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00,
+        null=True,
+        blank=True,
+    )
 
     def __str__(self):
         return self.nome
