@@ -291,6 +291,13 @@ def indexmeses(request, mes, ano):
         data__month=mes_atual
     ).order_by('-data')
 
+    # 🔹 Filtra despesas de crédito do mês (valor por parcela)
+    despesas_credito = DespesasCredito.objects.filter(
+        usuario=request.user,
+        data__year=ano_atual,
+        data__month=mes_atual
+    ).annotate(valor_parcela=F('valor_total') / F('parcelas_totais')).order_by('-data')
+
     # ---------- FILTROS GET ----------
     nome = request.GET.get("nome")
     categoria = request.GET.get("categoria")
@@ -300,21 +307,26 @@ def indexmeses(request, mes, ano):
 
     if nome:
         despesas = despesas.filter(nome__icontains=nome)
+        despesas_credito = despesas_credito.filter(nome__icontains=nome)
 
     if categoria:
         despesas = despesas.filter(categoria=categoria)
+        despesas_credito = despesas_credito.filter(categoria=categoria)
 
     if lugar:
         despesas = despesas.filter(lugar=lugar)
+        despesas_credito = despesas_credito.filter(lugar=lugar)
 
     if dia:
         despesas = despesas.filter(data__day=dia)
+        despesas_credito = despesas_credito.filter(data__day=dia)
 
     if valor_min:
         despesas = despesas.filter(valor__gte=valor_min)
+        despesas_credito = despesas_credito.filter(valor_parcela__gte=valor_min)
 
     # ---------- CÁLCULOS OTIMIZADOS ----------
-    total_gasto = sum(d.valor for d in despesas)
+    total_gasto = sum(d.valor for d in despesas) + sum(dc.valor_parcela for dc in despesas_credito)
 
     # 🔸 Filtra orçamentos do mês de forma leve
     orcamentos_mes = Orcamentos.objects.filter(
@@ -345,7 +357,31 @@ def indexmeses(request, mes, ano):
     saldo_atual = total_orcado - total_pago
 
     # ---------- PAGINAÇÃO ----------
-    paginator = Paginator(despesas, 10)
+    # Combina despesas comuns + crédito proporcional para listar
+    combined = []
+    for d in despesas:
+        combined.append({
+            'id': d.id,
+            'nome': d.nome,
+            'valor': d.valor,
+            'data': d.data,
+            'categoria': d.categoria,
+            'lugar': d.lugar,
+            'tipo': 'debito',
+        })
+    for dc in despesas_credito:
+        combined.append({
+            'id': dc.id,
+            'nome': dc.nome,
+            'valor': dc.valor_parcela,
+            'data': dc.data,
+            'categoria': dc.categoria,
+            'lugar': dc.lugar,
+            'tipo': 'credito',
+        })
+    combined_sorted = sorted(combined, key=lambda x: (x['data'], x['id']), reverse=True)
+
+    paginator = Paginator(combined_sorted, 10)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
@@ -420,28 +456,49 @@ def index(request):
         data__month=mes_atual
     ).order_by('-data')
 
-    total_gasto = sum(d.valor for d in despesas)
+    # Filtrar despesas de crédito do mês (valor proporcional da parcela)
+    despesas_credito = DespesasCredito.objects.filter(
+        usuario=request.user,
+        data__year=ano_atual,
+        data__month=mes_atual
+    ).annotate(valor_parcela=F('valor_total') / F('parcelas_totais')).order_by('-data')
 
     nome = request.GET.get("nome")
     categoria = request.GET.get("categoria")
     lugar = request.GET.get("lugar")
     dia = request.GET.get("dia")
     valor_min = request.GET.get("valor_min")
+    tipo = request.GET.get("tipo")
 
     if nome:
         despesas = despesas.filter(nome__icontains=nome)
+        despesas_credito = despesas_credito.filter(nome__icontains=nome)
 
     if categoria:
         despesas = despesas.filter(categoria=categoria)
+        despesas_credito = despesas_credito.filter(categoria=categoria)
 
     if lugar:
         despesas = despesas.filter(lugar=lugar)
+        despesas_credito = despesas_credito.filter(lugar=lugar)
 
     if dia:
         despesas = despesas.filter(data__day=dia)
+        despesas_credito = despesas_credito.filter(data__day=dia)
 
     if valor_min:
         despesas = despesas.filter(valor__gte=valor_min)
+        despesas_credito = despesas_credito.filter(valor_parcela__gte=valor_min)
+
+    # filtro por tipo: 'credito' só lista crédito, demais filtram despesas comuns
+    if tipo:
+        if tipo == 'credito':
+            despesas = despesas.none()
+        else:
+            despesas_credito = despesas_credito.none()
+            despesas = despesas.filter(tipo=tipo)
+
+    total_gasto = sum(d.valor for d in despesas) + sum(dc.valor_parcela for dc in despesas_credito)
 
     todas_as_despesas = Despesas.objects.filter(usuario=request.user).values("valor")
     todos_os_orcamentos = Orcamentos.objects.filter(usuario=request.user).values("valor")
@@ -465,7 +522,30 @@ def index(request):
 
     total_recebido = sum(o["valor"] for o in orcamentos_mes)
 
-    paginator = Paginator(despesas, 10)
+    combined = []
+    for d in despesas:
+        combined.append({
+            'id': d.id,
+            'nome': d.nome,
+            'valor': d.valor,
+            'data': d.data,
+            'categoria': d.categoria,
+            'lugar': d.lugar,
+            'tipo': 'debito',
+        })
+    for dc in despesas_credito:
+        combined.append({
+            'id': dc.id,
+            'nome': dc.nome,
+            'valor': dc.valor_parcela,
+            'data': dc.data,
+            'categoria': dc.categoria,
+            'lugar': dc.lugar,
+            'tipo': 'credito',
+        })
+    combined_sorted = sorted(combined, key=lambda x: (x['data'], x['id']), reverse=True)
+
+    paginator = Paginator(combined_sorted, 10)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 

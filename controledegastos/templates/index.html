@@ -208,6 +208,17 @@
                         <input name="valor_min" type="number" step="0.01" value="{{ request.GET.valor_min }}"
                                class="w-full mt-1 px-3 py-2 border rounded-md" placeholder="R$">
                     </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Tipo</label>
+                        <select name="tipo" class="w-full mt-1 px-3 py-2 border rounded-md">
+                            <option value="">Todos</option>
+                            <option value="debito" {% if request.GET.tipo == "debito" %}selected{% endif %}>Débito</option>
+                            <option value="pix" {% if request.GET.tipo == "pix" %}selected{% endif %}>Pix</option>
+                            <option value="dinheiro" {% if request.GET.tipo == "dinheiro" %}selected{% endif %}>Dinheiro</option>
+                            <option value="credito" {% if request.GET.tipo == "credito" %}selected{% endif %}>Crédito</option>
+                        </select>
+                    </div>
                 </div>
                 <button class="mt-4 px-6 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 cursor-pointer">
                     Aplicar filtro
@@ -222,6 +233,7 @@
                     <tr>
                         <th class="px-6 py-3">Nome</th>
                         <th class="px-6 py-3">Valor</th>
+                        <th class="px-6 py-3">Tipo</th>
                         <th class="px-6 py-3">Data</th>
                         <th class="px-6 py-3">Categoria</th>
                         <th class="px-6 py-3">Lugar</th>
@@ -230,10 +242,28 @@
 
                 <tbody class="divide-y divide-gray-200">
                 {% for despesa in page_obj %}
-                    <tr onclick="window.location.href='{% url 'controledegastos:despesa' despesa.id %}'"
+                    {% if despesa.tipo == 'credito' %}
+                        {% url 'controledegastos:despesacredito' despesa.id as detail_url %}
+                    {% else %}
+                        {% url 'controledegastos:despesa' despesa.id as detail_url %}
+                    {% endif %}
+                    <tr onclick="window.location.href='{{ detail_url }}'"
                         class="hover:bg-gray-50 cursor-pointer">
-                        <td class="px-6 py-3">{{ despesa.nome }}</td>
-                        <td class="px-6 py-3">R$ {{ despesa.valor }}</td>
+                        <td class="px-6 py-3">
+                            {{ despesa.nome }}
+                        </td>
+                        <td class="px-6 py-3">R$ {{ despesa.valor|floatformat:"-2" }}</td>
+                        <td class="px-6 py-3">
+                            {% if despesa.tipo == 'credito' %}
+                                Crédito
+                            {% elif despesa.tipo == 'pix' %}
+                                Pix
+                            {% elif despesa.tipo == 'dinheiro' %}
+                                Dinheiro
+                            {% else %}
+                                Débito
+                            {% endif %}
+                        </td>
                         <td class="px-6 py-3">{{ despesa.data|date:"d/m" }}</td>
                         <td class="px-6 py-3">{{ despesa.categoria|default:"—" }}</td>
                         <td class="px-6 py-3">{{ despesa.lugar|default:"—" }}</td>

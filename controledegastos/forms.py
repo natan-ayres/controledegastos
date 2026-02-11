@@ -154,6 +154,7 @@ class LugaresForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('usuario', None)
+        self.user = user
         super().__init__(*args, **kwargs)
         root_lugares = Lugares.objects.filter(lugar_pai__isnull=True)
         if user is not None:
@@ -162,6 +163,24 @@ class LugaresForm(forms.ModelForm):
             root_lugares = root_lugares.exclude(pk=self.instance.pk)
             self.fields['lugar_pai'].initial = self.instance.lugar_pai
         self.fields['lugar_pai'].queryset = root_lugares
+
+    def clean_nome(self):
+        nome = self.cleaned_data.get('nome')
+        if not nome:
+            return nome
+        if not self.user:
+            return nome
+        lugar_pai = self.cleaned_data.get('lugar_pai')
+        qs = Lugares.objects.filter(
+            usuario=self.user,
+            nome__iexact=nome,
+            lugar_pai=lugar_pai,
+        )
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise ValidationError("Já existe um lugar com este nome para este lugar pai.")
+        return nome
 
     def clean_lugar_pai(self):
         lugar_pai = self.cleaned_data.get('lugar_pai')
@@ -184,6 +203,7 @@ class CategoriasForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('usuario', None)
+        self.user = user
         super().__init__(*args, **kwargs)
         root_categories = Categorias.objects.filter(categoria_pai__isnull=True)
         if user is not None:
@@ -195,6 +215,24 @@ class CategoriasForm(forms.ModelForm):
             self.fields['categoria_pai'].initial = self.instance.categoria_pai
         # só permite escolher categorias sem pai
         self.fields['categoria_pai'].queryset = root_categories
+
+    def clean_nome(self):
+        nome = self.cleaned_data.get('nome')
+        if not nome:
+            return nome
+        if not self.user:
+            return nome
+        categoria_pai = self.cleaned_data.get('categoria_pai')
+        qs = Categorias.objects.filter(
+            usuario=self.user,
+            nome__iexact=nome,
+            categoria_pai=categoria_pai,
+        )
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise ValidationError("Já existe uma categoria com este nome para este pai.")
+        return nome
 
     def clean_data(self):
         meta_valor = self.cleaned_data.get('meta_valor')
@@ -235,12 +273,13 @@ class CategoriasForm(forms.ModelForm):
 class DespesasForm(forms.ModelForm):
     class Meta:
         model = Despesas
-        fields = ['nome', 'descricao', 'valor', 'data', 'lugar', 'categoria']
+        fields = ['nome', 'descricao', 'valor', 'data', 'tipo', 'lugar', 'categoria']
         labels = {
             'nome': 'Nome da Despesa',
             'descricao': 'Descrição',
             'valor': 'Valor',
             'data': 'Data',
+            'tipo': 'Tipo',
             'lugar': 'Lugar',
             'categoria': 'Categoria',
         }
@@ -250,6 +289,12 @@ class DespesasForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['lugar'].queryset = Lugares.objects.filter(usuario=user)
         self.fields['categoria'].queryset = Categorias.objects.filter(usuario=user)
+        # mostra rótulos acentuados sem mudar o valor salvo
+        self.fields['tipo'].choices = [
+            ('debito', 'débito'),
+            ('pix', 'Pix'),
+            ('dinheiro', 'Dinheiro'),
+        ]
         
     def clean_valor(self):
         valor = self.cleaned_data.get('valor')

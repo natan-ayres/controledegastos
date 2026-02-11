@@ -42,11 +42,14 @@ class Categorias(models.Model):
     def __str__(self):
         return f"{self.categoria_pai} - {self.nome}" if self.categoria_pai else self.nome
 
+tipoDespesa = ['debito', 'pix', 'dinheiro']
+
 class Despesas(models.Model):
     nome = models.CharField(max_length=100)
     descricao = models.CharField(max_length=255, null=True, blank=True)
     valor = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     data = models.DateField(default=datetime.date.today)
+    tipo = models.CharField(max_length=10, choices=[(tipo, tipo) for tipo in tipoDespesa], default='debito')
     lugar = models.ForeignKey(Lugares, on_delete=models.CASCADE, null=True, blank=True)
     categoria = models.ForeignKey(Categorias, on_delete=models.CASCADE, null=True, blank=True)
     usuario = models.ForeignKey('auth.User', on_delete=models.CASCADE, null=True)
