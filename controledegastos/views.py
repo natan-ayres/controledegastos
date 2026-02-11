@@ -693,7 +693,7 @@ def lugares(request):
 
         lugares = Lugares.objects \
             .order_by('-id') \
-            .filter(usuario=request.user)
+            .filter(usuario=request.user, lugar_pai__isnull=True)
         
         # para cada categoria, calcular soma das despesas deste mês e anexar como atributo
         for c in lugares:
@@ -1054,6 +1054,52 @@ def lugar(request, lugar_id):
     except Lugares.DoesNotExist:
         return redirect('controledegastos:index')
 
+    # preparar sublugares e totais do mês atual
+    hoje = datetime.date.today()
+    lugares_usuario = Lugares.objects.filter(usuario=request.user)
+    children_map_lugares = defaultdict(list)
+    for lg in lugares_usuario:
+        if lg.lugar_pai_id:
+            children_map_lugares[lg.lugar_pai_id].append(lg.id)
+
+    totals_lugar_mes = defaultdict(Decimal)
+    despesas_mes_lugar = Despesas.objects.filter(
+        usuario=request.user,
+        data__year=hoje.year,
+        data__month=hoje.month
+    ).values('lugar_id').annotate(total=Sum('valor'))
+    for row in despesas_mes_lugar:
+        lid = row['lugar_id']
+        if lid:
+            totals_lugar_mes[lid] += row['total'] or Decimal('0')
+
+    despesas_credito_mes_lugar = DespesasCredito.objects.filter(
+        usuario=request.user,
+        data__year=hoje.year,
+        data__month=hoje.month
+    ).values('lugar_id').annotate(total=Sum(F('valor_total') / F('parcelas_totais')))
+    for row in despesas_credito_mes_lugar:
+        lid = row['lugar_id']
+        if lid:
+            totals_lugar_mes[lid] += row['total'] or Decimal('0')
+
+    subtree_cache_lugares = {}
+
+    def subtree_total_lugar(lid):
+        if lid in subtree_cache_lugares:
+            return subtree_cache_lugares[lid]
+        subtotal = totals_lugar_mes.get(lid, Decimal('0'))
+        for child_id in children_map_lugares.get(lid, []):
+            subtotal += subtree_total_lugar(child_id)
+        subtree_cache_lugares[lid] = subtotal
+        return subtotal
+
+    sublugares_qs = Lugares.objects.filter(lugar_pai=single_lugar, usuario=request.user).order_by('nome')
+    sublugares = []
+    for sl in sublugares_qs:
+        sl.valor_por_mes = subtree_total_lugar(sl.id)
+        sublugares.append(sl)
+
     site_title = f'Lugar: {single_lugar.nome}'
 
     year_month_qs_despesas = Despesas.objects.filter(usuario=request.user) \
@@ -1129,6 +1175,7 @@ def lugar(request, lugar_id):
         'username': request.user.username,
         'site_title': site_title,
         'gastos_formatados': gastos_formatados,
+        'sublugares': sublugares,
     }
 
     return render(request, 'lugar.html', context)
@@ -1399,8 +1446,22 @@ def createlugar(request):
     
     form_action = reverse('controledegastos:criarlugar')
 
+    parent_id = request.GET.get('lugar_pai') if request.method == 'GET' else request.POST.get('lugar_pai')
+    locked_parent = False
+    parent_obj = None
+    if parent_id:
+        try:
+            parent_obj = Lugares.objects.get(pk=parent_id, usuario=request.user, lugar_pai__isnull=True)
+            locked_parent = True
+        except Lugares.DoesNotExist:
+            parent_obj = None
+            locked_parent = False
+
     if request.method == 'POST':
-        form = LugaresForm(request.POST)
+        init = {'lugar_pai': parent_obj} if parent_obj else None
+        form = LugaresForm(request.POST, usuario=request.user, initial=init)
+        if locked_parent and 'lugar_pai' in form.fields:
+            form.fields['lugar_pai'].widget.attrs['disabled'] = True
 
         context = {
             'logado': True,
@@ -1408,11 +1469,16 @@ def createlugar(request):
             'form_name': 'Lugar',
             'username': request.user.username,
             'form_action': form_action,
+            'lock_lugar_pai': locked_parent,
+            'lugar_pai_id': parent_obj.id if parent_obj else None,
+            'lugar_pai_nome': parent_obj.nome if parent_obj else None,
         }
 
         if form.is_valid():
             lugar = form.save(commit=False)
             lugar.usuario = request.user
+            if locked_parent and parent_obj:
+                lugar.lugar_pai = parent_obj
             lugar.save()
             return redirect('controledegastos:lugares')
 
@@ -1422,7 +1488,10 @@ def createlugar(request):
             context
         )
     else:
-        form = LugaresForm()
+        init = {'lugar_pai': parent_obj} if parent_obj else None
+        form = LugaresForm(usuario=request.user, initial=init)
+        if locked_parent and 'lugar_pai' in form.fields:
+            form.fields['lugar_pai'].widget.attrs['disabled'] = True
 
     context = {
         'logado': True,
@@ -1430,6 +1499,9 @@ def createlugar(request):
         'form_name': 'Lugar',
         'username': request.user.username,
         'form_action': form_action,
+        'lock_lugar_pai': locked_parent,
+        'lugar_pai_id': parent_obj.id if parent_obj else None,
+        'lugar_pai_nome': parent_obj.nome if parent_obj else None,
 
     }
 
@@ -1679,6 +1751,8 @@ def createdespesacredito(request):
         if form.is_valid():
             despesa = form.save(commit=False)
             despesa.usuario = request.user
+            if despesa.parcelas_restantes is None:
+                despesa.parcelas_restantes = despesa.parcelas_totais
             despesa.save()
             return redirect('controledegastos:creditos')
 
@@ -1967,7 +2041,7 @@ def editlugar(request, lugar_id):
     form_action = reverse('controledegastos:editarlugar', args=[lugar_id])
 
     if request.method == 'POST':
-        form = LugaresForm(request.POST, instance=lugar)
+        form = LugaresForm(request.POST, instance=lugar, usuario=request.user)
 
         context = {
             'logado': True,
@@ -1988,7 +2062,7 @@ def editlugar(request, lugar_id):
             context
         )
     else:
-        form = LugaresForm(instance=lugar)
+        form = LugaresForm(instance=lugar, usuario=request.user)
 
     context = {
         'logado': True,
@@ -2135,6 +2209,8 @@ def editdespesacredito(request, despesa_id):
 
         if form.is_valid():
             despesa = form.save(commit=False)
+            if despesa.parcelas_restantes is None:
+                despesa.parcelas_restantes = despesa.parcelas_totais
             despesa.save()
             return redirect('controledegastos:creditos')
 

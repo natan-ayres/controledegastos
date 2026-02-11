@@ -145,11 +145,31 @@ class OrcamentosForm(forms.ModelForm):
 class LugaresForm(forms.ModelForm):
     class Meta:
         model = Lugares
-        fields = ['nome', 'endereco']
+        fields = ['nome', 'endereco', 'lugar_pai']
         labels = {
             'nome': 'Nome do Lugar',
             'endereco': 'Endereço',
+            'lugar_pai': 'Lugar Pai',
         }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('usuario', None)
+        super().__init__(*args, **kwargs)
+        root_lugares = Lugares.objects.filter(lugar_pai__isnull=True)
+        if user is not None:
+            root_lugares = root_lugares.filter(usuario=user)
+        if self.instance and self.instance.pk:
+            root_lugares = root_lugares.exclude(pk=self.instance.pk)
+            self.fields['lugar_pai'].initial = self.instance.lugar_pai
+        self.fields['lugar_pai'].queryset = root_lugares
+
+    def clean_lugar_pai(self):
+        lugar_pai = self.cleaned_data.get('lugar_pai')
+        if lugar_pai and lugar_pai.lugar_pai is not None:
+            raise ValidationError("O lugar pai precisa ser um lugar raiz (sem lugar pai).")
+        if self.instance and self.instance.pk and lugar_pai and lugar_pai.pk == self.instance.pk:
+            raise ValidationError("Um lugar não pode ser seu próprio lugar pai.")
+        return lugar_pai
 
 class CategoriasForm(forms.ModelForm):
     class Meta:

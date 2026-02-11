@@ -32,7 +32,7 @@
     {% if lugar.descricao %}
     <div class="mt-4">
       <p class="text-gray-500 text-sm uppercase mb-1">Descrição</p>
-      <p class="text-gray-700 leading-relaxed">{{ lugar.descricao }}</p>
+      <p class="text-xl font-semibold text-gray-800 mb-2">{{ lugar.descricao }}</p>
     </div>
     {% else %}
     <div class="mt-4">
@@ -54,6 +54,52 @@
       {% endfor %}
     </div>
   </div>
+
+  {% if sublugares %}
+    <div class="mt-6">
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-2xl font-bold text-red-600 text-center sm:text-left">Sublugares</p>
+        <a href="{% url 'controledegastos:criarlugar' %}?lugar_pai={{ lugar.id }}"
+           class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm">
+          + Novo Sublugar
+        </a>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for slugar in sublugares %}
+          <div class="bg-white shadow-md rounded-lg p-5 border border-gray-100 hover:shadow-lg transition">
+              <a
+                href="{% url 'controledegastos:lugar' slugar.id %}"
+                class="block text-inherit no-underline"
+                aria-label="Ver detalhes de {{ slugar.nome }}"
+              >
+                <h3 class="text-lg font-semibold text-gray-800">{{ slugar.nome }}</h3>
+                {% if slugar.endereco %}
+                  <p class="text-gray-600 text-sm mt-1">{{ slugar.endereco }}</p>
+                {% else %}
+                  <p class="text-gray-400 text-sm mt-1 italic">Sem endereço</p>
+                {% endif %}
+                <p class="text-green-600 font-semibold mt-3">
+                  Gasto no mês: R${{ slugar.valor_por_mes|floatformat:"-2" }}
+                </p>
+                <div class="flex justify-between items-center mt-4 gap-2">
+                  <a href="{% url 'controledegastos:editarlugar' slugar.id %}"
+                    class="flex-1 bg-white text-red-600 border border-red-600 px-3 py-1.5 rounded-lg text-center hover:bg-red-50 transition">
+                    Editar
+                  </a>
+                  <form action="{% url 'controledegastos:deletarlugar' slugar.id %}" method="POST" class="flex-1">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="w-full bg-red-600 text-white px-3 py-1.5 rounded-lg hover:bg-red-700 transition">
+                      Deletar
+                    </button>
+                  </form>
+                </div>
+              </a>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
 
   <!-- Voltar -->
   <div class="mt-8 text-center">

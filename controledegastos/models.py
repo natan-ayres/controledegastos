@@ -19,11 +19,12 @@ class Orcamentos(models.Model):
 
 class Lugares(models.Model):
     nome = models.CharField(max_length=100)
+    lugar_pai = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='sublugares')
     endereco = models.CharField(max_length=255, null=True, blank=True)
     usuario = models.ForeignKey('auth.User', on_delete=models.CASCADE, null=True)
 
     def __str__(self):
-        return self.nome
+        return f"{self.lugar_pai} - {self.nome}" if self.lugar_pai else self.nome
     
 class Categorias(models.Model):
     nome = models.CharField(max_length=100)
@@ -39,7 +40,7 @@ class Categorias(models.Model):
     )
 
     def __str__(self):
-        return self.nome
+        return f"{self.categoria_pai} - {self.nome}" if self.categoria_pai else self.nome
 
 class Despesas(models.Model):
     nome = models.CharField(max_length=100)
