@@ -30,8 +30,10 @@
               {% else %}
                 <p class="text-gray-400 text-sm mt-1 italic">Sem descrição</p>
               {% endif %}
-              <p class="text-green-600 font-semibold mt-3">
-                Gasto no mês: R${{ categoria.valor_por_mes|floatformat:2 }}
+              <p
+                class="text-green-600 font-semibold mt-3"
+              >
+                (R${{ categoria.valor_por_mes|floatformat:"-2" }}/R${{ categoria.meta_valor|floatformat:"-2" }})
               </p>
               <div class="flex justify-between items-center mt-4 gap-2">
                 <a href="{% url 'controledegastos:editarcategoria' categoria.id %}"

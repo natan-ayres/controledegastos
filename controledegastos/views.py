@@ -637,7 +637,21 @@ def categorias(request):
             return subtotal
 
         for c in categorias:
-            setattr(c, 'valor_por_mes', subtree_total(c.id))
+            valor_mes = subtree_total(c.id)
+            c.valor_por_mes = valor_mes
+            meta_valor = c.meta_valor or Decimal('0')
+            c.meta_valor_calc = meta_valor
+            if meta_valor > 0:
+                # relação gasto/meta agora retorna apenas uma cor por faixa
+                perc = (valor_mes / meta_valor) * Decimal('100')
+                if perc < Decimal('80'):
+                    c.percentual_meta_cor = 'green'
+                elif perc < Decimal('100'):
+                    c.percentual_meta_cor = 'yellow'
+                else:
+                    c.percentual_meta_cor = 'red'
+            else:
+                c.percentual_meta_cor = 'gray'
 
         paginator = Paginator(categorias, 10)
         page_number = request.GET.get("page")
