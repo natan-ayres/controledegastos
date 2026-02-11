@@ -20,6 +20,8 @@ from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 from django.core.exceptions import ValidationError
 from django.core.cache import cache
+from decimal import Decimal
+from collections import defaultdict
 
 
 def mes_anterior(data_ref):
@@ -584,39 +586,58 @@ def categorias(request):
     if not request.user.is_authenticated:
         return redirect('controledegastos:login')
     
-    
-
     try:
         hoje = datetime.date.today()
 
-        categorias = Categorias.objects \
-            .order_by('-id') \
-            .filter(usuario=request.user)
+        # apenas categorias raiz (sem categoria pai)
+        categorias = Categorias.objects.filter(
+            usuario=request.user,
+            categoria_pai__isnull=True
+        ).order_by('-id')
 
-        # para cada categoria, calcular soma das despesas deste mês e anexar como atributo
+        # mapa de filhos para somar gastos de toda a árvore
+        user_categories = Categorias.objects.filter(usuario=request.user).values('id', 'categoria_pai_id')
+        children_map = defaultdict(list)
+        for rel in user_categories:
+            if rel['categoria_pai_id']:
+                children_map[rel['categoria_pai_id']].append(rel['id'])
+
+        # somatórios do mês por categoria (despesas comuns + crédito proporcional)
+        totals = defaultdict(Decimal)
+
+        despesas_mes = Despesas.objects.filter(
+            usuario=request.user,
+            data__year=hoje.year,
+            data__month=hoje.month
+        ).values('categoria_id').annotate(total=Sum('valor'))
+        for row in despesas_mes:
+            cat_id = row['categoria_id']
+            if cat_id:
+                totals[cat_id] += row['total'] or Decimal('0')
+
+        despesas_credito_mes = DespesasCredito.objects.filter(
+            usuario=request.user,
+            data__year=hoje.year,
+            data__month=hoje.month
+        ).values('categoria_id').annotate(total=Sum(F('valor_total') / F('parcelas_totais')))
+        for row in despesas_credito_mes:
+            cat_id = row['categoria_id']
+            if cat_id:
+                totals[cat_id] += row['total'] or Decimal('0')
+
+        subtree_cache = {}
+
+        def subtree_total(cat_id):
+            if cat_id in subtree_cache:
+                return subtree_cache[cat_id]
+            subtotal = totals.get(cat_id, Decimal('0'))
+            for child_id in children_map.get(cat_id, []):
+                subtotal += subtree_total(child_id)
+            subtree_cache[cat_id] = subtotal
+            return subtotal
+
         for c in categorias:
-            # despesas comuns
-            total = Despesas.objects.filter(
-                usuario=request.user,
-                categoria__exact=c,
-                data__year=hoje.year,
-                data__month=hoje.month
-            ).aggregate(
-                total=Sum('valor')
-            )['total'] or 0
-
-            # despesas do crédito considerando apenas parcela do mês
-            total_credito = DespesasCredito.objects.filter(
-                usuario=request.user,
-                categoria__exact=c,
-                data__year=hoje.year,
-                data__month=hoje.month
-            ).aggregate(
-                total=Sum(F('valor_total') / F('parcelas_totais'))
-            )['total'] or 0
-
-            # somando gastos normais + crédito proporcional
-            setattr(c, 'valor_por_mes', total + total_credito)
+            setattr(c, 'valor_por_mes', subtree_total(c.id))
 
         paginator = Paginator(categorias, 10)
         page_number = request.GET.get("page")

@@ -4,6 +4,7 @@ import re
 from django.core.exceptions import ValidationError
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
+from decimal import Decimal
 
 class RegisterForm(forms.ModelForm):
     password = forms.CharField(
@@ -153,18 +154,63 @@ class LugaresForm(forms.ModelForm):
 class CategoriasForm(forms.ModelForm):
     class Meta:
         model = Categorias
-        fields = ['nome', 'descricao', 'meta_valor']
+        fields = ['nome', 'descricao', 'categoria_pai', 'meta_valor']
         labels = {
             'nome': 'Nome da Categoria',
             'descricao': 'Descrição',
+            'categoria_pai': 'Categoria Pai',
             'meta_valor': 'Meta de Valor (opcional)',
         }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('usuario', None)
+        super().__init__(*args, **kwargs)
+        root_categories = Categorias.objects.filter(categoria_pai__isnull=True)
+        if user is not None:
+            root_categories = root_categories.filter(usuario=user)
+        if self.instance and self.instance.pk:
+            # remove a própria categoria das opções
+            root_categories = root_categories.exclude(pk=self.instance.pk)
+            # garante que o valor atual apareça pré-selecionado
+            self.fields['categoria_pai'].initial = self.instance.categoria_pai
+        # só permite escolher categorias sem pai
+        self.fields['categoria_pai'].queryset = root_categories
 
     def clean_data(self):
         meta_valor = self.cleaned_data.get('meta_valor')
         if meta_valor is not None and meta_valor < 0:
             raise ValidationError("A meta de valor não pode ser negativa.")
         return meta_valor
+
+    def clean_categoria_pai(self):
+        categoria_pai = self.cleaned_data.get('categoria_pai')
+        if categoria_pai and categoria_pai.categoria_pai is not None:
+            raise ValidationError("A categoria pai precisa ser uma categoria raiz (sem categoria pai).")
+        if self.instance and self.instance.pk and categoria_pai and categoria_pai.pk == self.instance.pk:
+            raise ValidationError("Uma categoria não pode ser sua própria categoria pai.")
+        return categoria_pai
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        categoria_pai = instance.categoria_pai
+        meta_valor = instance.meta_valor or Decimal('0')
+
+        if categoria_pai:
+            parent_meta = categoria_pai.meta_valor or Decimal('0')
+            # soma metas dos filhos existentes, desconsiderando o próprio (em edição)
+            filhos_meta = categoria_pai.subcategorias.exclude(pk=instance.pk).values_list('meta_valor', flat=True)
+            soma_filhos = sum((valor or Decimal('0')) for valor in filhos_meta)
+            limite_atual = parent_meta + soma_filhos
+
+            if meta_valor > limite_atual:
+                excesso = meta_valor - limite_atual
+                categoria_pai.meta_valor = parent_meta + excesso
+                if commit:
+                    categoria_pai.save(update_fields=['meta_valor'])
+
+        if commit:
+            instance.save()
+        return instance
 
 class DespesasForm(forms.ModelForm):
     class Meta:
