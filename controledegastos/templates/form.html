@@ -24,7 +24,13 @@
               {{ field.label }}
             </label>
 
-            {% if field.field.widget.input_type == "password" %}
+            {% if lock_categoria_pai and field.name == "categoria_pai" %}
+              {{ field }}
+              <input type="hidden" name="categoria_pai" value="{{ categoria_pai_id }}">
+              {% if categoria_pai_nome %}
+                <p class="text-xs text-gray-500 mt-1">Categoria pai fixa: {{ categoria_pai_nome }}</p>
+              {% endif %}
+            {% elif field.field.widget.input_type == "password" %}
               <div class="relative">
                 {{ field }}
               </div>

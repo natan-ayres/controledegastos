@@ -1146,6 +1146,53 @@ def categoria(request, categoria_id):
     except Categorias.DoesNotExist:
         return redirect('controledegastos:index')
 
+    # incluir filhos na soma dos gastos
+    categorias_filhas_qs = Categorias.objects.filter(
+        categoria_pai=single_categoria,
+        usuario=request.user
+    )
+    categoria_ids = [single_categoria.id] + list(categorias_filhas_qs.values_list('id', flat=True))
+
+    # calcular totais do mês atual para cada categoria (inclui netos)
+    hoje = datetime.date.today()
+    categorias_usuario = Categorias.objects.filter(usuario=request.user)
+    children_map = defaultdict(list)
+    for cat in categorias_usuario:
+        if cat.categoria_pai_id:
+            children_map[cat.categoria_pai_id].append(cat.id)
+
+    totals_mes = defaultdict(Decimal)
+    despesas_mes = Despesas.objects.filter(
+        usuario=request.user,
+        data__year=hoje.year,
+        data__month=hoje.month
+    ).values('categoria_id').annotate(total=Sum('valor'))
+    for row in despesas_mes:
+        cid = row['categoria_id']
+        if cid:
+            totals_mes[cid] += row['total'] or Decimal('0')
+
+    despesas_credito_mes = DespesasCredito.objects.filter(
+        usuario=request.user,
+        data__year=hoje.year,
+        data__month=hoje.month
+    ).values('categoria_id').annotate(total=Sum(F('valor_total') / F('parcelas_totais')))
+    for row in despesas_credito_mes:
+        cid = row['categoria_id']
+        if cid:
+            totals_mes[cid] += row['total'] or Decimal('0')
+
+    subtree_cache = {}
+
+    def subtree_total(cat_id):
+        if cat_id in subtree_cache:
+            return subtree_cache[cat_id]
+        subtotal = totals_mes.get(cat_id, Decimal('0'))
+        for child_id in children_map.get(cat_id, []):
+            subtotal += subtree_total(child_id)
+        subtree_cache[cat_id] = subtotal
+        return subtotal
+
     site_title = f'Categoria: {single_categoria.nome}'
 
     # Capturar ano/mês onde existe despesa ou crédito
@@ -1179,7 +1226,7 @@ def categoria(request, categoria_id):
                 # despesas comuns
                 total_mes = Despesas.objects.filter(
                     usuario=request.user,
-                    categoria=single_categoria,
+                    categoria__in=categoria_ids,
                     data__year=ano,
                     data__month=mes
                 ).aggregate(total=Sum('valor'))['total'] or 0
@@ -1187,7 +1234,7 @@ def categoria(request, categoria_id):
                 # despesas crédito proporcional do mês
                 total_credito_mes = DespesasCredito.objects.filter(
                     usuario=request.user,
-                    categoria=single_categoria,
+                    categoria__in=categoria_ids,
                     data__year=ano,
                     data__month=mes
                 ).aggregate(
@@ -1220,12 +1267,31 @@ def categoria(request, categoria_id):
 
     gastos_formatados.sort(key=lambda x: x["ano"], reverse=True)
 
+    # Categorias filhas (caso existam)
+    categorias_filhas = []
+    for c in categorias_filhas_qs.order_by('nome'):
+        valor_mes = subtree_total(c.id)
+        c.valor_por_mes = valor_mes
+        meta_valor = c.meta_valor or Decimal('0')
+        if meta_valor > 0:
+            perc = (valor_mes / meta_valor) * Decimal('100')
+            if perc < Decimal('80'):
+                c.percentual_meta_cor = 'verde'
+            elif perc < Decimal('100'):
+                c.percentual_meta_cor = 'amarelo'
+            else:
+                c.percentual_meta_cor = 'vermelho'
+        else:
+            c.percentual_meta_cor = None
+        categorias_filhas.append(c)
+
     return render(request, 'categoria.html', {
         'logado': True,
         'categoria': single_categoria,
         'username': request.user.username,
         'site_title': site_title,
         'gastos_formatados': gastos_formatados,
+        'categorias_filhas': categorias_filhas,
     })
 
 def prevista(request, prevista_id):
@@ -1381,8 +1447,23 @@ def createcategoria(request):
     
     form_action = reverse('controledegastos:criarcategoria')
 
+    # bloqueia seleção de categoria_pai quando vier na querystring
+    parent_id = request.GET.get('categoria_pai') if request.method == 'GET' else request.POST.get('categoria_pai')
+    locked_parent = False
+    parent_obj = None
+    if parent_id:
+        try:
+            parent_obj = Categorias.objects.get(pk=parent_id, usuario=request.user, categoria_pai__isnull=True)
+            locked_parent = True
+        except Categorias.DoesNotExist:
+            parent_obj = None
+            locked_parent = False
+
     if request.method == 'POST':
-        form = CategoriasForm(request.POST)
+        init = {'categoria_pai': parent_obj} if parent_obj else None
+        form = CategoriasForm(request.POST, usuario=request.user, initial=init)
+        if locked_parent and 'categoria_pai' in form.fields:
+            form.fields['categoria_pai'].widget.attrs['disabled'] = True
 
         context = {
             'logado': True,
@@ -1390,11 +1471,16 @@ def createcategoria(request):
             'form_name': 'Categoria',
             'username': request.user.username,
             'form_action': form_action,
+            'lock_categoria_pai': locked_parent,
+            'categoria_pai_id': parent_obj.id if parent_obj else None,
+            'categoria_pai_nome': parent_obj.nome if parent_obj else None,
         }
 
         if form.is_valid():
             categoria = form.save(commit=False)
             categoria.usuario = request.user
+            if locked_parent and parent_obj:
+                categoria.categoria_pai = parent_obj
             categoria.save()
             return redirect('controledegastos:categorias')
 
@@ -1404,7 +1490,10 @@ def createcategoria(request):
             context
         )
     else:
-        form = CategoriasForm()
+        init = {'categoria_pai': parent_obj} if parent_obj else None
+        form = CategoriasForm(usuario=request.user, initial=init)
+        if locked_parent and 'categoria_pai' in form.fields:
+            form.fields['categoria_pai'].widget.attrs['disabled'] = True
 
     context = {
         'logado': True,
@@ -1412,6 +1501,9 @@ def createcategoria(request):
         'form_name': 'Categoria',
         'username': request.user.username,
         'form_action': form_action,
+        'lock_categoria_pai': locked_parent,
+        'categoria_pai_id': parent_obj.id if parent_obj else None,
+        'categoria_pai_nome': parent_obj.nome if parent_obj else None,
 
     }
 
